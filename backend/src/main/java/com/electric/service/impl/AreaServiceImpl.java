@@ -11,7 +11,7 @@ import java.util.List;
  * AreaServiceImpl - 台区服务实现类
  * 
  * 功能说明：
- * 实现AreaService接口定义的方法，处理台区相关的业务逻辑
+ * 实现 AreaService 接口定义的方法，处理台区相关的业务逻辑
  * 
  * 业务逻辑：
  * 1. 获取所有台区列表
@@ -20,15 +20,18 @@ import java.util.List;
  * 4. 删除台区
  * 
  * 文件关联：
- * - 服务接口：实现AreaService接口
- * - 数据访问：依赖AreaRepository接口进行数据操作
- * - 控制器：被AreaController调用，处理HTTP请求
- * - 实体类：使用Area实体类作为数据模型
+ * - 服务接口：AreaService.java
+ * - 数据访问：AreaRepository
+ * - 控制器：AreaController
+ * - 实体类：Area
+ * 
+ * 新人提示：
+ * - 台区是配电变压器的供电范围
+ * - 台区数据包含多边形边界坐标，用于地图展示
  */
 @Service
 public class AreaServiceImpl implements AreaService {
 
-    // 注入台区数据访问接口
     private final AreaRepository areaRepository;
 
     /**
@@ -45,7 +48,6 @@ public class AreaServiceImpl implements AreaService {
      */
     @Override
     public List<Area> getAllAreas() {
-        // 调用Repository的findAll方法获取所有台区
         return areaRepository.findAll();
     }
 
@@ -56,7 +58,6 @@ public class AreaServiceImpl implements AreaService {
      */
     @Override
     public Area getAreaById(Long id) {
-        // 调用Repository的findById方法获取台区，使用orElse(null)处理不存在的情况
         return areaRepository.findById(id).orElse(null);
     }
 
@@ -67,8 +68,6 @@ public class AreaServiceImpl implements AreaService {
      */
     @Override
     public Area saveArea(Area area) {
-        // 调用Repository的save方法保存台区
-        // 如果area对象包含id，则更新现有记录；否则创建新记录
         return areaRepository.save(area);
     }
 
@@ -78,7 +77,6 @@ public class AreaServiceImpl implements AreaService {
      */
     @Override
     public void deleteArea(Long id) {
-        // 调用Repository的deleteById方法删除台区
         areaRepository.deleteById(id);
     }
 }
