@@ -4,57 +4,116 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.validation.constraints.*;
+import jakarta.validation.constraints.NotBlank;
 
 /**
  * Area - 台区实体类
  * 
  * 功能说明：
- * 存储台区的基本信息，包括名称、所属变电站、用户数、状态和几何边界
- * 使用 Jakarta Validation 注解进行参数校验
+ * 存储台区的基本信息，包括名称、所属变电站、客户数量和边界范围
+ * 用于在地图上绘制台区多边形区域并展示详情
+ * 
+ * 什么是台区？
+ * 台区是指一台配电变压器的供电范围区域
+ * 是电力系统中配电网络的基本单元
+ * 
+ * 数据库映射：
+ * - 表名：area
+ * - 主键：id，自增生成
  * 
  * 实体属性：
- * - id: 主键ID，自增生成
- * - name: 台区名称（必填，长度2-50）
- * - substationName: 所属变电站名称（必填）
- * - customerCount: 用户数量（必填，必须大于等于0）
- * - status: 运行状态（必填）
- * - geometry: 台区边界坐标（必填，JSON格式）
+ * ┌───────────────┬──────────┬────────────────────────────────┐
+ * │ 属性名        │ 类型     │ 说明                            │
+ * ├───────────────┼──────────┼────────────────────────────────┤
+ * │ id            │ Long     │ 主键ID，数据库自动生成           │
+ * │ name          │ String   │ 台区名称，必填                   │
+ * │ substationName│ String   │ 所属变电站名称                   │
+ * │ customerCount │ Integer  │ 客户数量                         │
+ * │ status        │ String   │ 运行状态                         │
+ * │ geometry      │ String   │ 边界范围（JSON格式的坐标数组）    │
+ * └───────────────┴──────────┴────────────────────────────────┘
+ * 
+ * geometry 字段格式：
+ * JSON 数组，每个元素是 [纬度, 经度] 格式的坐标点
+ * 多边形顶点，首尾相连形成封闭区域
+ * 示例：[[39.91, 116.41], [39.92, 116.41], [39.92, 116.42], [39.91, 116.42], [39.91, 116.41]]
  * 
  * 文件关联：
- * - 数据库表：对应数据库中的area表
- * - Repository：AreaRepository接口用于数据访问
- * - Service：AreaService接口及其实现类处理业务逻辑
- * - Controller：AreaController提供RESTful API接口
+ * - AreaRepository: 数据访问接口
+ * - AreaService: 业务逻辑处理
+ * - AreaController: RESTful API 接口
+ * 
+ * 新人提示：
+ * - geometry 字段存储多边形顶点坐标
+ * - 前端解析后使用 Mapbox GL 绘制多边形
+ * - 多边形首尾坐标应该相同，形成闭合区域
  */
 @Entity
 public class Area {
+    
+    /**
+     * 主键ID
+     * - 使用数据库自增策略生成
+     */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    /**
+     * 台区名称
+     * - 必填字段
+     * - 示例：朝阳区A台区
+     */
     @NotBlank(message = "台区名称不能为空")
-    @Size(min = 2, max = 50, message = "台区名称长度必须在2-50个字符之间")
     private String name;
 
-    @NotBlank(message = "所属变电站不能为空")
+    /**
+     * 所属变电站名称
+     * - 标识台区由哪个变电站供电
+     * - 与变电站名称对应
+     */
     private String substationName;
 
-    @NotNull(message = "用户数量不能为空")
-    @Min(value = 0, message = "用户数量不能小于0")
+    /**
+     * 客户数量
+     * - 该台区服务的客户总数
+     * - 用于统计和展示
+     */
     private Integer customerCount;
 
-    @NotBlank(message = "运行状态不能为空")
-    @Pattern(regexp = "^(正常|异常|检修)$", message = "运行状态必须是正常、异常或检修")
+    /**
+     * 运行状态
+     * - 常见值：正常、异常、检修
+     */
     private String status;
 
-    @NotBlank(message = "台区边界坐标不能为空")
+    /**
+     * 边界范围
+     * - JSON 格式的坐标数组
+     * - 格式：[[纬度1, 经度1], [纬度2, 经度2], ...]
+     * - 多边形顶点，首尾相连形成封闭区域
+     * - 用于在地图上绘制台区范围
+     */
     private String geometry;
 
-    // 默认构造函数
+    // ==================== 构造函数 ====================
+
+    /**
+     * 默认构造函数
+     * JPA 要求实体类必须有无参构造函数
+     */
     public Area() {}
 
-    // 带参数的构造函数
+    /**
+     * 带参数的构造函数
+     * 用于快速创建实体对象
+     * 
+     * @param name 台区名称
+     * @param substationName 所属变电站
+     * @param customerCount 客户数量
+     * @param status 运行状态
+     * @param geometry 边界范围（JSON）
+     */
     public Area(String name, String substationName, Integer customerCount, String status, String geometry) {
         this.name = name;
         this.substationName = substationName;
@@ -63,7 +122,8 @@ public class Area {
         this.geometry = geometry;
     }
 
-    // Getters and Setters
+    // ==================== Getter 和 Setter 方法 ====================
+
     public Long getId() {
         return id;
     }

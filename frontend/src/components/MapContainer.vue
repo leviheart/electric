@@ -325,23 +325,32 @@ const addSubstationsToMap = (substations: Substation[]) => {
 const addTransmissionLinesToMap = (transmissionLines: TransmissionLine[]) => {
   if (!map) return
   
-  transmissionLines.forEach((line) => {
+  transmissionLines.forEach((line, index) => {
     try {
       const points = JSON.parse(line.geometry)
       const coordinates = points.map((point: number[]) => [point[1], point[0]])
       
       const lineId = `line-${line.id}`
+      const particleId = `particle-${line.id}`
       
       let lineColor = '#00f0ff'
+      let glowColor = '#00f0ff'
+      let particleSpeed = 2
       switch (line.voltageLevel) {
         case '220kV':
-          lineColor = '#ff0080'
+          lineColor = '#ff3366'
+          glowColor = '#ff0080'
+          particleSpeed = 3
           break
         case '110kV':
-          lineColor = '#00f0ff'
+          lineColor = '#00ccff'
+          glowColor = '#00f0ff'
+          particleSpeed = 2
           break
         case '35kV':
-          lineColor = '#00ff80'
+          lineColor = '#00ff99'
+          glowColor = '#00ff80'
+          particleSpeed = 1.5
           break
       }
       
@@ -354,13 +363,44 @@ const addTransmissionLinesToMap = (transmissionLines: TransmissionLine[]) => {
             id: line.id,
             length: line.length,
             voltageLevel: line.voltageLevel,
-            status: line.status,
-            color: lineColor
+            status: line.status
           },
           geometry: {
             type: 'LineString',
             coordinates: coordinates
           }
+        }
+      })
+      
+      map!.addLayer({
+        id: lineId + '-outer-glow',
+        type: 'line',
+        source: lineId,
+        layout: {
+          'line-join': 'round',
+          'line-cap': 'round'
+        },
+        paint: {
+          'line-color': glowColor,
+          'line-width': 25,
+          'line-opacity': 0.08,
+          'line-blur': 20
+        }
+      })
+      
+      map!.addLayer({
+        id: lineId + '-inner-glow',
+        type: 'line',
+        source: lineId,
+        layout: {
+          'line-join': 'round',
+          'line-cap': 'round'
+        },
+        paint: {
+          'line-color': glowColor,
+          'line-width': 12,
+          'line-opacity': 0.2,
+          'line-blur': 8
         }
       })
       
@@ -374,11 +414,103 @@ const addTransmissionLinesToMap = (transmissionLines: TransmissionLine[]) => {
         },
         paint: {
           'line-color': lineColor,
-          'line-width': 6,
-          'line-opacity': 0.8,
-          'line-blur': 2
+          'line-width': 2.5,
+          'line-opacity': 1
         }
       })
+      
+      const totalLength = coordinates.reduce((acc: number, coord: number[], i: number) => {
+        if (i === 0) return 0
+        const prev = coordinates[i - 1]
+        const dx = coord[0] - prev[0]
+        const dy = coord[1] - prev[1]
+        return acc + Math.sqrt(dx * dx + dy * dy)
+      }, 0)
+      
+      const particleCount = Math.max(3, Math.floor(totalLength * 50))
+      const particles: any[] = []
+      
+      for (let i = 0; i < particleCount; i++) {
+        particles.push({
+          type: 'Feature',
+          geometry: {
+            type: 'Point',
+            coordinates: coordinates[0]
+          },
+          properties: {
+            progress: i / particleCount,
+            speed: 0.001 * particleSpeed * (0.8 + Math.random() * 0.4)
+          }
+        })
+      }
+      
+      map!.addSource(particleId, {
+        type: 'geojson',
+        data: {
+          type: 'FeatureCollection',
+          features: particles
+        }
+      })
+      
+      map!.addLayer({
+        id: particleId,
+        type: 'circle',
+        source: particleId,
+        paint: {
+          'circle-radius': ['interpolate', ['linear'], ['zoom'], 8, 2, 12, 4, 16, 8],
+          'circle-color': '#ffffff',
+          'circle-opacity': ['interpolate', ['linear'], ['zoom'], 8, 0.4, 12, 0.6, 16, 0.8],
+          'circle-blur': 0.5
+        }
+      })
+      
+      let animationFrame: number
+      const particleSource = map!.getSource(particleId) as mapboxgl.GeoJSONSource
+      
+      const animateParticles = () => {
+        if (!map || !map.getLayer(particleId)) return
+        
+        const updatedParticles = particles.map((p: any) => {
+          let progress = p.properties.progress + p.properties.speed
+          if (progress > 1) progress = 0
+          
+          let totalDist = 0
+          let coord = coordinates[0]
+          
+          for (let i = 1; i < coordinates.length; i++) {
+            const prev = coordinates[i - 1]
+            const curr = coordinates[i]
+            const dx = curr[0] - prev[0]
+            const dy = curr[1] - prev[1]
+            const segLen = Math.sqrt(dx * dx + dy * dy)
+            
+            if (totalDist + segLen >= progress * totalLength) {
+              const segProgress = (progress * totalLength - totalDist) / segLen
+              coord = [
+                prev[0] + dx * segProgress,
+                prev[1] + dy * segProgress
+              ]
+              break
+            }
+            totalDist += segLen
+          }
+          
+          p.properties.progress = progress
+          p.geometry.coordinates = coord
+          return p
+        })
+        
+        particleSource.setData({
+          type: 'FeatureCollection',
+          features: updatedParticles
+        })
+        
+        animationFrame = requestAnimationFrame(animateParticles)
+      }
+      
+      setTimeout(() => {
+        animationFrame = requestAnimationFrame(animateParticles)
+      }, index * 100)
       
       map!.on('click', lineId, (e: mapboxgl.MapMouseEvent) => {
         const features = map!.queryRenderedFeatures(e.point, {
@@ -422,17 +554,22 @@ const addTransmissionLinesToMap = (transmissionLines: TransmissionLine[]) => {
       
       map!.on('mouseenter', lineId, () => {
         map!.getCanvas().style.cursor = 'pointer'
-        map!.setPaintProperty(lineId, 'line-width', 8)
-        map!.setPaintProperty(lineId, 'line-opacity', 1)
+        map!.setPaintProperty(lineId, 'line-width', 4)
+        map!.setPaintProperty(lineId + '-inner-glow', 'line-width', 18)
+        map!.setPaintProperty(lineId + '-inner-glow', 'line-opacity', 0.35)
       })
       
       map!.on('mouseleave', lineId, () => {
         map!.getCanvas().style.cursor = ''
-        map!.setPaintProperty(lineId, 'line-width', 6)
-        map!.setPaintProperty(lineId, 'line-opacity', 0.8)
+        map!.setPaintProperty(lineId, 'line-width', 2.5)
+        map!.setPaintProperty(lineId + '-inner-glow', 'line-width', 12)
+        map!.setPaintProperty(lineId + '-inner-glow', 'line-opacity', 0.2)
       })
       
       lines.push(lineId)
+      lines.push(lineId + '-outer-glow')
+      lines.push(lineId + '-inner-glow')
+      lines.push(particleId)
     } catch (e) {
       console.error('解析线路数据失败:', e)
     }

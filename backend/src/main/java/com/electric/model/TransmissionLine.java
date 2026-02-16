@@ -4,66 +4,129 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.validation.constraints.*;
+import jakarta.validation.constraints.NotBlank;
 
 /**
  * TransmissionLine - 输电线路实体类
  * 
  * 功能说明：
- * 存储输电线路的基本信息，包括起点、终点、长度、电压等级、运行状态和几何坐标
- * 使用 Jakarta Validation 注解进行参数校验
+ * 存储输电线路的基本信息，包括起止变电站、长度、电压等级和几何路径
+ * 用于在地图上绘制输电线路并展示详情
+ * 
+ * 数据库映射：
+ * - 表名：transmission_line（默认使用类名转下划线）
+ * - 主键：id，自增生成
  * 
  * 实体属性：
- * - id: 主键ID，自增生成
- * - name: 线路名称（必填，长度2-50）
- * - startSubstation: 起始变电站名称（必填）
- * - endSubstation: 终止变电站名称（必填）
- * - length: 线路长度（必填，必须大于0）
- * - voltageLevel: 电压等级（必填）
- * - status: 运行状态（必填）
- * - geometry: 线路几何坐标（必填，JSON格式）
+ * ┌───────────────┬──────────┬────────────────────────────────┐
+ * │ 属性名        │ 类型     │ 说明                            │
+ * ├───────────────┼──────────┼────────────────────────────────┤
+ * │ id            │ Long     │ 主键ID，数据库自动生成           │
+ * │ name          │ String   │ 线路名称，必填                   │
+ * │ startSubstation│ String  │ 起始变电站名称                   │
+ * │ endSubstation │ String   │ 终止变电站名称                   │
+ * │ length        │ Double   │ 线路长度（公里）                  │
+ * │ voltageLevel  │ String   │ 电压等级（220kV/110kV/35kV）     │
+ * │ status        │ String   │ 运行状态                         │
+ * │ geometry      │ String   │ 几何路径（JSON格式的坐标数组）    │
+ * └───────────────┴──────────┴────────────────────────────────┘
+ * 
+ * geometry 字段格式：
+ * JSON 数组，每个元素是 [纬度, 经度] 格式的坐标点
+ * 示例：[[39.9142, 116.4174], [39.8942, 116.3974]]
  * 
  * 文件关联：
- * - 数据库表：对应数据库中的transmission_line表
- * - Repository：TransmissionLineRepository接口用于数据访问
- * - Service：TransmissionLineService接口及其实现类处理业务逻辑
- * - Controller：TransmissionLineController提供RESTful API接口
+ * - TransmissionLineRepository: 数据访问接口
+ * - TransmissionLineService: 业务逻辑处理
+ * - TransmissionLineController: RESTful API 接口
+ * 
+ * 新人提示：
+ * - geometry 字段存储 JSON 字符串，前端需要解析后使用
+ * - 线路颜色根据 voltageLevel 在前端决定
  */
 @Entity
 public class TransmissionLine {
+    
+    /**
+     * 主键ID
+     * - 使用数据库自增策略生成
+     */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    /**
+     * 线路名称
+     * - 必填字段
+     * - 示例：朝阳-海淀线
+     */
     @NotBlank(message = "线路名称不能为空")
-    @Size(min = 2, max = 50, message = "线路名称长度必须在2-50个字符之间")
     private String name;
 
-    @NotBlank(message = "起始变电站不能为空")
+    /**
+     * 起始变电站名称
+     * - 线路的起点
+     * - 与变电站名称对应
+     */
     private String startSubstation;
 
-    @NotBlank(message = "终止变电站不能为空")
+    /**
+     * 终止变电站名称
+     * - 线路的终点
+     * - 与变电站名称对应
+     */
     private String endSubstation;
 
-    @NotNull(message = "线路长度不能为空")
-    @Positive(message = "线路长度必须大于0")
+    /**
+     * 线路长度
+     * - 单位：公里（km）
+     * - 用于显示线路距离
+     */
     private Double length;
 
-    @NotBlank(message = "电压等级不能为空")
-    @Pattern(regexp = "^(220kV|110kV|35kV|10kV)$", message = "电压等级必须是220kV、110kV、35kV或10kV")
+    /**
+     * 电压等级
+     * - 常见值：220kV、110kV、35kV
+     * - 用于区分不同电压等级的输电网络
+     * - 前端根据此值决定线路颜色
+     */
     private String voltageLevel;
 
-    @NotBlank(message = "运行状态不能为空")
-    @Pattern(regexp = "^(运行中|检修中|停运)$", message = "运行状态必须是运行中、检修中或停运")
+    /**
+     * 运行状态
+     * - 常见值：运行中、停运、检修
+     */
     private String status;
 
-    @NotBlank(message = "线路几何坐标不能为空")
+    /**
+     * 几何路径
+     * - JSON 格式的坐标数组
+     * - 格式：[[纬度1, 经度1], [纬度2, 经度2], ...]
+     * - 用于在地图上绘制线路
+     * - 可以包含多个中间点，实现曲线效果
+     */
     private String geometry;
 
-    // 默认构造函数
+    // ==================== 构造函数 ====================
+
+    /**
+     * 默认构造函数
+     * JPA 要求实体类必须有无参构造函数
+     */
     public TransmissionLine() {}
 
-    // 带参数的构造函数
+    /**
+     * 带参数的构造函数
+     * 用于快速创建实体对象
+     * 
+     * @param name 线路名称
+     * @param startSubstation 起始变电站
+     * @param endSubstation 终止变电站
+     * @param length 长度（公里）
+     * @param voltageLevel 电压等级
+     * @param status 运行状态
+     * @param geometry 几何路径（JSON）
+     */
     public TransmissionLine(String name, String startSubstation, String endSubstation, 
                            Double length, String voltageLevel, String status, String geometry) {
         this.name = name;
@@ -75,7 +138,8 @@ public class TransmissionLine {
         this.geometry = geometry;
     }
 
-    // Getters and Setters
+    // ==================== Getter 和 Setter 方法 ====================
+
     public Long getId() {
         return id;
     }
