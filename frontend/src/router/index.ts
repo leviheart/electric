@@ -40,6 +40,24 @@ const routes: RouteRecordRaw[] = [
     }
   },
   {
+    path: '/dashboard',
+    name: 'Dashboard',
+    component: () => import('../views/DashboardView.vue'),
+    meta: {
+      title: '数据统计',
+      requiresAuth: true
+    }
+  },
+  {
+    path: '/manage',
+    name: 'Manage',
+    component: () => import('../views/ManageView.vue'),
+    meta: {
+      title: '数据管理',
+      requiresAuth: true
+    }
+  },
+  {
     path: '/about',
     name: 'About',
     component: () => import('../views/AboutView.vue'),

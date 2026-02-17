@@ -77,6 +77,9 @@ public class TransmissionLineServiceImpl implements TransmissionLineService {
      */
     @Override
     public void deleteTransmissionLine(Long id) {
+        if (!transmissionLineRepository.existsById(id)) {
+            throw BusinessException.notFound("输电线路", id);
+        }
         transmissionLineRepository.deleteById(id);
     }
 }

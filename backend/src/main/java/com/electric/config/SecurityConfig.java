@@ -106,6 +106,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/**").permitAll()
                         // H2 控制台不需要认证（仅开发环境）
                         .requestMatchers("/h2-console/**").permitAll()
+                        // WebSocket 端点不需要认证
+                        .requestMatchers("/ws/**").permitAll()
                         // 其他 API 接口需要认证
                         .requestMatchers("/api/**").authenticated()
                         // 其他请求允许访问

@@ -117,3 +117,53 @@ export interface GeoJsonFeature<T = LineStringGeometry | PolygonGeometry> {
   properties: Record<string, any>
   geometry: T
 }
+
+/**
+ * ═══════════════════════════════════════════════════════════════════════════
+ * 用户相关类型定义
+ * ═══════════════════════════════════════════════════════════════════════════
+ */
+
+/**
+ * 用户信息类型
+ * 与后端 UserInfo DTO 对应
+ * 
+ * TypeScript 接口说明：
+ * ┌─────────────────────────────────────────────────────────────────────────┐
+ * │ interface 定义对象的结构，与 Java 的 class 类似                          │
+ * │                                                                          │
+ * │ 与 Java 的区别：                                                         │
+ * │ - Java: class UserInfo { private String username; ... }                 │
+ * │ - TS:   interface User { username: string; ... }                        │
+ * │                                                                          │
+ * │ 类型注解：                                                               │
+ * │ - username: string  → 字段名为 username，类型为字符串                    │
+ * │ - enabled: boolean  → 字段名为 enabled，类型为布尔值                     │
+ * │ - role?: string     → ? 表示可选字段，可以是 string 或 undefined         │
+ * └─────────────────────────────────────────────────────────────────────────┘
+ */
+export interface User {
+  username: string
+  role: string
+  enabled: boolean
+}
+
+/**
+ * 登录请求类型
+ * 与后端 LoginRequest DTO 对应
+ */
+export interface LoginRequest {
+  username: string
+  password: string
+}
+
+/**
+ * 登录响应类型
+ * 与后端 LoginResponse DTO 对应
+ */
+export interface LoginResponse {
+  token: string
+  username: string
+  role: string
+  expiresIn: number
+}

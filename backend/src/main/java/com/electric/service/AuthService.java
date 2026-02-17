@@ -2,6 +2,7 @@ package com.electric.service;
 
 import com.electric.dto.LoginRequest;
 import com.electric.dto.LoginResponse;
+import com.electric.dto.UserInfo;
 
 /**
  * AuthService - 认证服务接口
@@ -28,4 +29,11 @@ public interface AuthService {
      * @return 是否成功
      */
     boolean register(LoginRequest loginRequest);
+    
+    /**
+     * 获取用户信息
+     * @param username 用户名
+     * @return 用户信息
+     */
+    UserInfo getUserInfo(String username);
 }

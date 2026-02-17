@@ -77,6 +77,9 @@ public class AreaServiceImpl implements AreaService {
      */
     @Override
     public void deleteArea(Long id) {
+        if (!areaRepository.existsById(id)) {
+            throw BusinessException.notFound("台区", id);
+        }
         areaRepository.deleteById(id);
     }
 }

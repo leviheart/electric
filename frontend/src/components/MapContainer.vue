@@ -6,30 +6,58 @@
 /**
  * MapContainer.vue - 地图容器组件
  * 
- * 功能说明：
- * 封装 Mapbox GL JS 地图实例
- * 处理地图初始化、数据渲染、交互事件
+ * ═══════════════════════════════════════════════════════════════════════════
+ * 一、Vue 3 组合式 API (Composition API)
+ * ═══════════════════════════════════════════════════════════════════════════
  * 
- * 属性：
- * - accessToken: Mapbox 访问令牌
- * - mapStyle: 地图样式
- * - center: 地图中心点
- * - zoom: 初始缩放级别
+ * <script setup lang="ts">
+ * ┌─────────────────────────────────────────────────────────────────────────┐
+ * │ <script setup> 是 Vue 3 的语法糖，简化了组合式 API 的使用               │
+ * │                                                                          │
+ * │ 相比传统的 Options API：                                                 │
+ * │ - 不需要 export default {}                                              │
+ * │ - 不需要 return 响应式变量                                               │
+ * │ - 代码更简洁，TypeScript 支持更好                                        │
+ * │                                                                          │
+ * │ lang="ts" 表示使用 TypeScript                                           │
+ * │ - 提供类型检查                                                          │
+ * │ - 更好的 IDE 支持                                                       │
+ * │ - 编译时发现错误                                                        │
+ * └─────────────────────────────────────────────────────────────────────────┘
  * 
- * 事件：
- * - map-ready: 地图初始化完成
- * - layer-toggle: 图层切换
+ * ═══════════════════════════════════════════════════════════════════════════
+ * 二、Mapbox GL JS 简介
+ * ═══════════════════════════════════════════════════════════════════════════
  * 
- * 暴露方法：
- * - loadData: 加载数据
- * - clearMap: 清空地图
- * - toggleLayer: 切换图层
- * - animateMap: 执行动画
+ * Mapbox GL JS 是一个用于在 Web 浏览器中渲染交互式地图的 JavaScript 库。
  * 
- * 文件关联：
- * - App.vue: 父组件
- * - api/*.ts: API 服务
- * - types/index.ts: 类型定义
+ * 核心概念：
+ * ┌─────────────────────────────────────────────────────────────────────────┐
+ * │ 1. Map（地图实例）                                                       │
+ * │    - 地图的核心对象，管理地图状态和渲染                                   │
+ * │    - 包含样式、中心点、缩放级别等配置                                     │
+ * │                                                                          │
+ * │ 2. Source（数据源）                                                      │
+ * │    - 地图数据的来源，可以是 GeoJSON、矢量瓦片、栅格等                      │
+ * │    - 每个 Source 有唯一的 ID                                             │
+ * │                                                                          │
+ * │ 3. Layer（图层）                                                         │
+ * │    - 定义如何渲染 Source 中的数据                                        │
+ * │    - 类型：circle（圆点）、line（线）、fill（填充）、symbol（符号）等      │
+ * │    - 每个 Layer 必须关联一个 Source                                      │
+ * │                                                                          │
+ * │ 4. Style（样式）                                                         │
+ * │    - 定义地图的整体外观                                                  │
+ * │    - 包含所有 Source 和 Layer 的定义                                     │
+ * │    - Mapbox 提供多种预设样式：dark-v11、streets-v12、satellite-v9 等      │
+ * │                                                                          │
+ * │ 数据流：                                                                 │
+ * │ Source (GeoJSON数据) → Layer (渲染规则) → 地图显示                       │
+ * └─────────────────────────────────────────────────────────────────────────┘
+ * 
+ * ═══════════════════════════════════════════════════════════════════════════
+ * 三、组件属性 (Props)
+ * ═══════════════════════════════════════════════════════════════════════════
  */
 import { onMounted, onUnmounted } from 'vue'
 import mapboxgl from 'mapbox-gl'
@@ -39,6 +67,23 @@ import { useSettingsStore } from '../stores/settingsStore'
 
 const settingsStore = useSettingsStore()
 
+/**
+ * defineProps<T>() - 定义组件属性
+ * ┌─────────────────────────────────────────────────────────────────────────┐
+ * │ TypeScript 泛型语法，定义属性的类型                                       │
+ * │                                                                          │
+ * │ 属性说明：                                                               │
+ * │ - accessToken: Mapbox API 密钥（必填）                                   │
+ * │ - mapStyle?: 地图样式 URL（可选，? 表示可选）                             │
+ * │ - center?: 中心点坐标 [经度, 纬度]（可选）                                │
+ * │ - zoom?: 缩放级别 0-22（可选）                                           │
+ * │                                                                          │
+ * │ withDefaults(): 为可选属性提供默认值                                     │
+ * │ - mapStyle: 暗色主题地图                                                 │
+ * │ - center: 北京市中心 [116.4074, 39.9042]                                │
+ * │ - zoom: 12（可以看到整个城市）                                           │
+ * └─────────────────────────────────────────────────────────────────────────┘
+ */
 const props = withDefaults(defineProps<{
   accessToken: string
   mapStyle?: string
@@ -59,6 +104,8 @@ let map: mapboxgl.Map | null = null
 let markers: mapboxgl.Marker[] = []
 let lines: string[] = []
 let polygons: string[] = []
+let animationFrames: number[] = []
+let timeouts: ReturnType<typeof setTimeout>[] = []
 
 const layerVisibility = {
   substations: true,
@@ -78,6 +125,10 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
+  animationFrames.forEach(id => cancelAnimationFrame(id))
+  timeouts.forEach(id => clearTimeout(id))
+  animationFrames = []
+  timeouts = []
   clearMap()
   if (map) {
     map.remove()
@@ -167,12 +218,24 @@ const clearMap = () => {
   markers = []
   
   lines.forEach(lineId => {
-    if (map?.getLayer(lineId)) {
-      map.removeLayer(lineId)
-    }
-    if (map?.getSource(lineId)) {
-      map.removeSource(lineId)
-    }
+    const layerIds = [
+      lineId,
+      `${lineId}-outer-glow`,
+      `${lineId}-inner-glow`,
+      `${lineId}-particle`
+    ]
+    layerIds.forEach(layerId => {
+      if (map?.getLayer(layerId)) {
+        map.removeLayer(layerId)
+      }
+    })
+    
+    const sourceIds = [lineId, `particle-${lineId.replace('line-', '')}`]
+    sourceIds.forEach(sourceId => {
+      if (map?.getSource(sourceId)) {
+        map.removeSource(sourceId)
+      }
+    })
   })
   lines = []
   
@@ -332,6 +395,26 @@ const addTransmissionLinesToMap = (transmissionLines: TransmissionLine[]) => {
       
       const lineId = `line-${line.id}`
       const particleId = `particle-${line.id}`
+      
+      // 检查并移除已存在的图层和源
+      const existingLayers = [
+        lineId,
+        `${lineId}-outer-glow`,
+        `${lineId}-inner-glow`,
+        `${lineId}-particle`
+      ]
+      existingLayers.forEach(layerId => {
+        if (map?.getLayer(layerId)) {
+          map.removeLayer(layerId)
+        }
+      })
+      
+      if (map?.getSource(lineId)) {
+        map.removeSource(lineId)
+      }
+      if (map?.getSource(particleId)) {
+        map.removeSource(particleId)
+      }
       
       let lineColor = '#00f0ff'
       let glowColor = '#00f0ff'
@@ -506,11 +589,14 @@ const addTransmissionLinesToMap = (transmissionLines: TransmissionLine[]) => {
         })
         
         animationFrame = requestAnimationFrame(animateParticles)
+        animationFrames.push(animationFrame)
       }
       
-      setTimeout(() => {
+      const timeoutId = setTimeout(() => {
         animationFrame = requestAnimationFrame(animateParticles)
+        animationFrames.push(animationFrame)
       }, index * 100)
+      timeouts.push(timeoutId)
       
       map!.on('click', lineId, (e: mapboxgl.MapMouseEvent) => {
         const features = map!.queryRenderedFeatures(e.point, {
@@ -571,7 +657,7 @@ const addTransmissionLinesToMap = (transmissionLines: TransmissionLine[]) => {
       lines.push(lineId + '-inner-glow')
       lines.push(particleId)
     } catch (e) {
-      console.error('解析线路数据失败:', e)
+      console.error(`解析线路数据失败 [${line.name}]:`, e)
     }
   })
 }
@@ -706,8 +792,18 @@ const addAreasToMap = (areas: Area[]) => {
       
       polygons.push(areaId, areaOutlineId, areaGlowId)
     } catch (e) {
-      console.error('解析台区数据失败:', e)
+      console.error(`解析台区数据失败 [${area.name}]:`, e)
     }
+  })
+}
+
+const flyTo = (lng: number, lat: number, zoom?: number) => {
+  if (!map) return
+  
+  map.flyTo({
+    center: [lng, lat],
+    zoom: zoom || 16,
+    duration: 1500
   })
 }
 
@@ -715,7 +811,8 @@ defineExpose({
   loadData,
   clearMap,
   toggleLayer,
-  animateMap
+  animateMap,
+  flyTo
 })
 </script>
 

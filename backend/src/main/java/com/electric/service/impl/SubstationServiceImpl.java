@@ -147,7 +147,9 @@ public class SubstationServiceImpl implements SubstationService {
      */
     @Override
     public void deleteSubstation(Long id) {
-        // 根据 ID 删除记录
+        if (!substationRepository.existsById(id)) {
+            throw BusinessException.notFound("变电站", id);
+        }
         substationRepository.deleteById(id);
     }
 }

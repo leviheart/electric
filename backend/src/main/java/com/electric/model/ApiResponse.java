@@ -85,6 +85,17 @@ public class ApiResponse<T> {
         return new ApiResponse<>(400, message, data);
     }
     
+    /**
+     * 错误响应构造函数（带状态码和数据）
+     * @param code HTTP状态码
+     * @param message 错误消息
+     * @param data 错误详情数据
+     * @return ApiResponse 错误响应对象
+     */
+    public static <T> ApiResponse<T> error(int code, String message, T data) {
+        return new ApiResponse<>(code, message, data);
+    }
+    
     // Getter和Setter方法
     public int getCode() {
         return code;

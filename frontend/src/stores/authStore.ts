@@ -53,15 +53,17 @@ const TOKEN_KEY = 'electric_grid_token'
 const USER_KEY = 'electric_grid_user'
 
 export const useAuthStore = defineStore('auth', {
-  /**
-   * 状态定义
-   * 从 localStorage 恢复 Token 和用户信息
-   */
   state: (): AuthState => ({
-    // 从 localStorage 读取 Token
     token: localStorage.getItem(TOKEN_KEY),
-    // 从 localStorage 读取用户信息
-    user: JSON.parse(localStorage.getItem(USER_KEY) || 'null')
+    user: (() => {
+      try {
+        const saved = localStorage.getItem(USER_KEY)
+        return saved ? JSON.parse(saved) : null
+      } catch {
+        localStorage.removeItem(USER_KEY)
+        return null
+      }
+    })()
   }),
 
   /**

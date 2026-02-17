@@ -149,13 +149,18 @@ async function request<T>(url: string, config: RequestConfig = {}): Promise<ApiR
   }
   
   try {
-    // 发送请求
     const response = await fetch(`${BASE_URL}${url}`, options)
     
-    // 解析响应
-    const data = await response.json()
+    let data
+    try {
+      data = await response.json()
+    } catch {
+      throw {
+        status: response.status,
+        message: response.ok ? '服务器响应格式错误' : `请求失败 (${response.status})`
+      }
+    }
     
-    // 如果响应不成功，抛出错误
     if (!response.ok) {
       throw {
         status: response.status,

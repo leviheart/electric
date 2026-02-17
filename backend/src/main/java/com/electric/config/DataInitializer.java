@@ -1,34 +1,145 @@
 package com.electric.config;
 
 import com.electric.model.Area;
+import com.electric.model.Role;
 import com.electric.model.Substation;
 import com.electric.model.TransmissionLine;
 import com.electric.model.User;
 import com.electric.repository.AreaRepository;
+import com.electric.repository.RoleRepository;
 import com.electric.repository.SubstationRepository;
 import com.electric.repository.TransmissionLineRepository;
 import com.electric.repository.UserRepository;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
- * DataInitializer - 数据初始化类
+ * DataInitializer - 数据初始化器
  * 
- * 功能说明：
- * 实现CommandLineRunner接口，在Spring Boot应用启动时自动执行数据初始化操作
- * 当数据库中没有数据时，插入示例数据，包括用户、变电站、输电线路和台区
+ * ═══════════════════════════════════════════════════════════════════════════
+ * 一、什么是数据初始化？
+ * ═══════════════════════════════════════════════════════════════════════════
  * 
- * 初始化流程：
- * 1. 初始化默认管理员用户
- * 2. 检查变电站表是否为空，如果为空则插入示例变电站
- * 3. 检查输电线路表是否为空，如果为空则插入示例输电线路
- * 4. 检查台区表是否为空，如果为空则插入示例台区
+ * 数据初始化是在应用启动时自动创建初始数据的过程。
+ * 
+ * 为什么需要数据初始化？
+ * ┌─────────────────────────────────────────────────────────────────────────┐
+ * │ 1. 开发便利：无需手动创建测试数据                                        │
+ * │ 2. 演示环境：提供预置数据便于展示功能                                     │
+ * │ 3. 默认配置：创建默认管理员账户、角色等                                   │
+ * │ 4. 数据一致性：确保必要的基础数据存在                                     │
+ * └─────────────────────────────────────────────────────────────────────────┘
+ * 
+ * ═══════════════════════════════════════════════════════════════════════════
+ * 二、核心注解和接口
+ * ═══════════════════════════════════════════════════════════════════════════
+ * 
+ * @Component
+ * ┌─────────────────────────────────────────────────────────────────────────┐
+ * │ 将此类注册为 Spring Bean                                                │
+ * │ Spring 会在应用启动时自动创建此类的实例                                   │
+ * └─────────────────────────────────────────────────────────────────────────┘
+ * 
+ * implements CommandLineRunner
+ * ┌─────────────────────────────────────────────────────────────────────────┐
+ * │ CommandLineRunner 是 Spring Boot 提供的接口                              │
+ * │                                                                          │
+ * │ 执行时机：                                                               │
+ * │ 1. Spring 容器初始化完成                                                 │
+ * │ 2. 所有 Bean 创建和注入完成                                              │
+ * │ 3. 应用开始接受请求之前                                                   │
+ * │                                                                          │
+ * │ 工作原理：                                                               │
+ * │ Spring Boot 启动 → 扫描所有 CommandLineRunner 实现 → 调用 run() 方法     │
+ * │                                                                          │
+ * │ run(String... args) 方法：                                               │
+ * │ - args: 命令行参数（如 java -jar app.jar --server.port=9000）            │
+ * │ - 在应用启动时自动调用                                                    │
+ * │ - 如果抛出异常，应用启动失败                                              │
+ * │                                                                          │
+ * │ 类似接口：ApplicationRunner（参数封装为 ApplicationArguments）            │
+ * └─────────────────────────────────────────────────────────────────────────┘
+ * 
+ * ═══════════════════════════════════════════════════════════════════════════
+ * 三、初始化流程
+ * ═══════════════════════════════════════════════════════════════════════════
+ * 
+ * ┌─────────────────────────────────────────────────────────────────────────┐
+ * │ run() 方法执行顺序：                                                     │
+ * │                                                                          │
+ * │ 1. initRoles()     → 创建角色（ADMIN、USER）                             │
+ * │ 2. initUsers()     → 创建用户（admin、user）                             │
+ * │ 3. initSubstations() → 创建变电站数据                                    │
+ * │ 4. initTransmissionLines() → 创建输电线路数据                            │
+ * │ 5. initAreas()     → 创建台区数据                                        │
+ * │                                                                          │
+ * │ 为什么按这个顺序？                                                       │
+ * │ - 角色必须先存在，用户才能关联角色                                        │
+ * │ - 变电站必须先存在，线路才能关联变电站                                    │
+ * │ - 变电站必须先存在，台区才能关联变电站                                    │
+ * │                                                                          │
+ * │ 幂等性设计：                                                             │
+ * │ - if (repository.count() == 0) 只在数据为空时初始化                      │
+ * │ - 多次启动不会重复创建数据                                               │
+ * │ - 安全地重新部署应用                                                     │
+ * └─────────────────────────────────────────────────────────────────────────┘
+ * 
+ * ═══════════════════════════════════════════════════════════════════════════
+ * 四、密码加密说明
+ * ═══════════════════════════════════════════════════════════════════════════
+ * 
+ * passwordEncoder.encode("admin123")
+ * ┌─────────────────────────────────────────────────────────────────────────┐
+ * │ 使用 BCrypt 加密密码                                                    │
+ * │                                                                          │
+ * │ 为什么不在配置文件中存储明文密码？                                       │
+ * │ - 安全风险：配置文件可能被泄露                                           │
+ * │ - 审计要求：密码必须加密存储                                             │
+ * │ - 最佳实践：永远不要存储明文密码                                         │
+ * │                                                                          │
+ * │ BCrypt 特点：                                                            │
+ * │ - 每次加密结果不同（包含随机盐值）                                        │
+ * │ - 相同密码的加密结果不同                                                 │
+ * │ - 防止彩虹表攻击                                                         │
+ * └─────────────────────────────────────────────────────────────────────────┘
+ * 
+ * ═══════════════════════════════════════════════════════════════════════════
+ * 五、Lambda 表达式说明
+ * ═══════════════════════════════════════════════════════════════════════════
+ * 
+ * userRepository.findByUsername("admin").ifPresent(admin -> { ... });
+ * ┌─────────────────────────────────────────────────────────────────────────┐
+ * │ Optional.ifPresent(Consumer) 的用法                                      │
+ * │                                                                          │
+ * │ 传统写法：                                                               │
+ * │   Optional<User> opt = userRepository.findByUsername("admin");          │
+ * │   if (opt.isPresent()) {                                                │
+ * │       User admin = opt.get();                                           │
+ * │       // 处理逻辑                                                        │
+ * │   }                                                                      │
+ * │                                                                          │
+ * │ Lambda 写法：                                                            │
+ * │   userRepository.findByUsername("admin")                                │
+ * │       .ifPresent(admin -> {                                             │
+ * │           // 处理逻辑                                                    │
+ * │       });                                                                │
+ * │                                                                          │
+ * │ 好处：                                                                   │
+ * │ - 代码更简洁                                                             │
+ * │ - 避免 null 检查                                                        │
+ * │ - 函数式编程风格                                                         │
+ * └─────────────────────────────────────────────────────────────────────────┘
  * 
  * 文件关联：
- * - 实体类：使用Substation、TransmissionLine、Area、User实体类创建示例数据
- * - 数据访问：依赖各Repository接口进行数据操作
- * - 应用启动：实现CommandLineRunner接口，在应用启动时自动执行
+ * - SecurityConfig: 密码编码器配置
+ * - UserRepository: 用户数据访问
+ * - RoleRepository: 角色数据访问
+ * - SubstationRepository: 变电站数据访问
+ * - TransmissionLineRepository: 输电线路数据访问
+ * - AreaRepository: 台区数据访问
  */
 @Component
 public class DataInitializer implements CommandLineRunner {
@@ -37,46 +148,119 @@ public class DataInitializer implements CommandLineRunner {
     private final TransmissionLineRepository transmissionLineRepository;
     private final AreaRepository areaRepository;
     private final UserRepository userRepository;
+    private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
 
+    /**
+     * 构造函数注入
+     * 所有依赖通过构造函数注入，确保不可变性和便于测试
+     */
     public DataInitializer(SubstationRepository substationRepository, 
                           TransmissionLineRepository transmissionLineRepository, 
                           AreaRepository areaRepository,
                           UserRepository userRepository,
+                          RoleRepository roleRepository,
                           PasswordEncoder passwordEncoder) {
         this.substationRepository = substationRepository;
         this.transmissionLineRepository = transmissionLineRepository;
         this.areaRepository = areaRepository;
         this.userRepository = userRepository;
+        this.roleRepository = roleRepository;
         this.passwordEncoder = passwordEncoder;
     }
 
+    /**
+     * 应用启动时自动执行的方法
+     * 
+     * @param args 命令行参数
+     * @throws Exception 初始化失败时抛出异常
+     */
     @Override
     public void run(String... args) throws Exception {
+        initRoles();
         initUsers();
         initSubstations();
         initTransmissionLines();
         initAreas();
     }
 
-    private void initUsers() {
-        if (userRepository.count() == 0) {
-            User admin = new User();
-            admin.setUsername("admin");
-            admin.setPassword(passwordEncoder.encode("admin123"));
-            admin.setRole("ADMIN");
-            admin.setEnabled(true);
-            userRepository.save(admin);
-
-            User user = new User();
-            user.setUsername("user");
-            user.setPassword(passwordEncoder.encode("user123"));
-            user.setRole("USER");
-            user.setEnabled(true);
-            userRepository.save(user);
+    /**
+     * 初始化角色数据
+     * 
+     * 幂等性：只在角色表为空时创建
+     */
+    private void initRoles() {
+        if (roleRepository.count() == 0) {
+            Role adminRole = new Role("ADMIN", "管理员");
+            Role userRole = new Role("USER", "普通用户");
+            roleRepository.save(adminRole);
+            roleRepository.save(userRole);
         }
     }
 
+    /**
+     * 初始化用户数据
+     * 
+     * 创建默认用户：
+     * - admin / admin123 (管理员)
+     * - user / user123 (普通用户)
+     */
+    private void initUsers() {
+        Role adminRole = roleRepository.findByName("ADMIN").orElse(null);
+        Role userRole = roleRepository.findByName("USER").orElse(null);
+        
+        if (userRepository.count() == 0) {
+            // 创建管理员账户
+            User admin = new User();
+            admin.setUsername("admin");
+            admin.setPassword(passwordEncoder.encode("admin123"));
+            admin.setEnabled(true);
+            if (adminRole != null) {
+                Set<Role> roles = new HashSet<>();
+                roles.add(adminRole);
+                admin.setRoles(roles);
+            }
+            userRepository.save(admin);
+
+            // 创建普通用户账户
+            User user = new User();
+            user.setUsername("user");
+            user.setPassword(passwordEncoder.encode("user123"));
+            user.setEnabled(true);
+            if (userRole != null) {
+                Set<Role> roles = new HashSet<>();
+                roles.add(userRole);
+                user.setRoles(roles);
+            }
+            userRepository.save(user);
+        } else {
+            // 如果用户已存在但没有角色，补充角色
+            userRepository.findByUsername("admin").ifPresent(admin -> {
+                if (admin.getRoles().isEmpty() && adminRole != null) {
+                    Set<Role> roles = new HashSet<>();
+                    roles.add(adminRole);
+                    admin.setRoles(roles);
+                    userRepository.save(admin);
+                }
+            });
+            
+            userRepository.findByUsername("user").ifPresent(user -> {
+                if (user.getRoles().isEmpty() && userRole != null) {
+                    Set<Role> roles = new HashSet<>();
+                    roles.add(userRole);
+                    user.setRoles(roles);
+                    userRepository.save(user);
+                }
+            });
+        }
+    }
+
+    /**
+     * 初始化变电站数据
+     * 
+     * 创建北京市各区县的变电站
+     * 包含：名称、经纬度、电压等级、运行状态
+     */
     private void initSubstations() {
         if (substationRepository.count() == 0) {
             Substation[] substations = {
@@ -104,6 +288,17 @@ public class DataInitializer implements CommandLineRunner {
         }
     }
 
+    /**
+     * 初始化输电线路数据
+     * 
+     * 创建连接各变电站的输电线路
+     * 包含：名称、起止变电站、长度、电压等级、状态、几何路径
+     * 
+     * geometry 字段说明：
+     * - JSON 格式的坐标数组
+     * - 用于在地图上绘制线路
+     * - 格式：[[lat1, lng1], [lat2, lng2], ...]
+     */
     private void initTransmissionLines() {
         if (transmissionLineRepository.count() == 0) {
             TransmissionLine[] lines = {
@@ -145,6 +340,17 @@ public class DataInitializer implements CommandLineRunner {
         }
     }
 
+    /**
+     * 初始化台区数据
+     * 
+     * 创建各变电站供电的台区
+     * 包含：名称、所属变电站、用户数量、状态、供电范围
+     * 
+     * geometry 字段说明：
+     * - JSON 格式的多边形坐标
+     * - 用于在地图上绘制台区范围
+     * - 格式：[[lat1, lng1], [lat2, lng2], ..., [lat1, lng1]]（首尾闭合）
+     */
     private void initAreas() {
         if (areaRepository.count() == 0) {
             Area[] areas = {
