@@ -2,7 +2,6 @@ import type { Map, GeoJSONSource } from 'mapbox-gl'
 import {
   getVoltageStyle,
   getLoadStatusStyle,
-  hexToRgba,
   PARTICLE_CONFIG
 } from '../config/lineStyles'
 import type { TransmissionLine } from '../types'
@@ -24,6 +23,35 @@ interface LineData {
   lineType?: 'overhead' | 'cable'
 }
 
+class FeaturePool {
+  private pool: any[] = []
+  private maxSize: number
+  
+  constructor(maxSize: number = 500) {
+    this.maxSize = maxSize
+  }
+  
+  acquire(): any {
+    return this.pool.pop() || {
+      type: 'Feature',
+      geometry: { type: 'Point', coordinates: [] },
+      properties: {}
+    }
+  }
+  
+  release(feature: any): void {
+    if (this.pool.length < this.maxSize) {
+      feature.geometry.coordinates = []
+      feature.properties = {}
+      this.pool.push(feature)
+    }
+  }
+  
+  releaseAll(features: any[]): void {
+    features.forEach(f => this.release(f))
+  }
+}
+
 export class ParticleAnimationSystem {
   private map: Map
   private particles: Particle[] = []
@@ -32,9 +60,16 @@ export class ParticleAnimationSystem {
   private isRunning = false
   private lastTime = 0
   private pulsePhase = 0
+  private featurePool: FeaturePool
+  private featuresBuffer: any[] = []
+  private glowFeaturesBuffer: any[] = []
+  
+  private static readonly TARGET_FPS = 30
+  private static readonly FRAME_INTERVAL = 1000 / ParticleAnimationSystem.TARGET_FPS
 
   constructor(map: Map) {
     this.map = map
+    this.featurePool = new FeaturePool(500)
   }
 
   initialize(lines: TransmissionLine[]): void {
@@ -55,7 +90,7 @@ export class ParticleAnimationSystem {
 
         const style = getVoltageStyle(line.voltageLevel)
         const loadStyle = getLoadStatusStyle(line.loadRate)
-        const particleCount = style.particleCount
+        const particleCount = Math.min(style.particleCount, 20)
 
         for (let i = 0; i < particleCount; i++) {
           this.particles.push({
@@ -94,15 +129,18 @@ export class ParticleAnimationSystem {
 
     const currentTime = performance.now()
     const deltaTime = (currentTime - this.lastTime) / 1000
-    this.lastTime = currentTime
 
-    this.pulsePhase += deltaTime
-    if (this.pulsePhase > Math.PI * 2) {
-      this.pulsePhase -= Math.PI * 2
+    if (deltaTime >= ParticleAnimationSystem.FRAME_INTERVAL / 1000) {
+      this.lastTime = currentTime
+
+      this.pulsePhase += deltaTime
+      if (this.pulsePhase > Math.PI * 2) {
+        this.pulsePhase -= Math.PI * 2
+      }
+
+      this.updateParticles(deltaTime)
+      this.renderParticles()
     }
-
-    this.updateParticles(deltaTime)
-    this.renderParticles()
 
     this.animationId = requestAnimationFrame(this.animate)
   }
@@ -128,7 +166,10 @@ export class ParticleAnimationSystem {
   }
 
   private renderParticles(): void {
-    const features: any[] = []
+    this.featurePool.releaseAll(this.featuresBuffer)
+    this.featurePool.releaseAll(this.glowFeaturesBuffer)
+    this.featuresBuffer = []
+    this.glowFeaturesBuffer = []
 
     this.particles.forEach(particle => {
       const lineInfo = this.lineData[particle.lineIndex]
@@ -141,59 +182,51 @@ export class ParticleAnimationSystem {
         : 0.9
 
       if (particle.trail.length > 0) {
-        features.push({
-          type: 'Feature',
-          geometry: {
-            type: 'Point',
-            coordinates: particle.trail[0]
-          },
+        const headFeature = this.featurePool.acquire()
+        headFeature.geometry.coordinates = particle.trail[0]
+        headFeature.properties = {
+          color: particle.color,
+          opacity: pulseOpacity,
+          radius: PARTICLE_CONFIG.baseRadius,
+          isHead: true
+        }
+        this.featuresBuffer.push(headFeature)
+        this.glowFeaturesBuffer.push({
+          ...headFeature,
           properties: {
-            color: particle.color,
-            opacity: pulseOpacity,
-            radius: PARTICLE_CONFIG.baseRadius,
-            isHead: true
+            ...headFeature.properties,
+            radius: PARTICLE_CONFIG.glowRadius
           }
         })
 
-        particle.trail.forEach((point, index) => {
-          if (index === 0) return
+        for (let index = 1; index < particle.trail.length; index++) {
+          const point = particle.trail[index]
           const trailOpacity = pulseOpacity * (1 - index / PARTICLE_CONFIG.trailLength) * 0.6
           const trailRadius = PARTICLE_CONFIG.baseRadius * (1 - index / PARTICLE_CONFIG.trailLength * 0.5)
           
-          features.push({
-            type: 'Feature',
-            geometry: {
-              type: 'Point',
-              coordinates: point
-            },
-            properties: {
-              color: particle.color,
-              opacity: trailOpacity,
-              radius: trailRadius,
-              isHead: false
-            }
-          })
-        })
+          const trailFeature = this.featurePool.acquire()
+          trailFeature.geometry.coordinates = point
+          trailFeature.properties = {
+            color: particle.color,
+            opacity: trailOpacity,
+            radius: trailRadius,
+            isHead: false
+          }
+          this.featuresBuffer.push(trailFeature)
+        }
       }
     })
 
     const source = this.map.getSource('particles') as GeoJSONSource
     source?.setData({
       type: 'FeatureCollection',
-      features
+      features: this.featuresBuffer
     })
 
-    const glowFeatures = features.filter(f => f.properties.isHead)
     const glowSource = this.map.getSource('particles-glow') as GeoJSONSource
     glowSource?.setData({
       type: 'FeatureCollection',
-      features: glowFeatures.map(f => ({
-        ...f,
-        properties: {
-          ...f.properties,
-          radius: PARTICLE_CONFIG.glowRadius
-        }
-      }))
+      features: this.glowFeaturesBuffer
     })
   }
 
@@ -246,6 +279,10 @@ export class PulseAnimationSystem {
   private animationId: number | null = null
   private isRunning = false
   private phase = 0
+  private lastTime = 0
+  
+  private static readonly TARGET_FPS = 15
+  private static readonly FRAME_INTERVAL = 1000 / PulseAnimationSystem.TARGET_FPS
 
   constructor(map: Map) {
     this.map = map
@@ -254,6 +291,7 @@ export class PulseAnimationSystem {
   start(): void {
     if (this.isRunning) return
     this.isRunning = true
+    this.lastTime = performance.now()
     this.animate()
   }
 
@@ -268,19 +306,25 @@ export class PulseAnimationSystem {
   private animate = (): void => {
     if (!this.isRunning) return
 
-    this.phase += 0.02
-    if (this.phase > Math.PI * 2) {
-      this.phase -= Math.PI * 2
-    }
+    const currentTime = performance.now()
+    const deltaTime = currentTime - this.lastTime
 
-    const pulseOpacity = 0.15 + Math.sin(this.phase) * 0.1
-    const glowOpacity = 0.3 + Math.sin(this.phase) * 0.15
+    if (deltaTime >= PulseAnimationSystem.FRAME_INTERVAL) {
+      this.lastTime = currentTime
 
-    try {
-      this.map.setPaintProperty('lines-glow-outer', 'line-opacity', pulseOpacity)
-      this.map.setPaintProperty('lines-glow', 'line-opacity', glowOpacity)
-    } catch (e) {
-      // Layer might not exist yet
+      this.phase += 0.02
+      if (this.phase > Math.PI * 2) {
+        this.phase -= Math.PI * 2
+      }
+
+      const pulseOpacity = 0.15 + Math.sin(this.phase) * 0.1
+      const glowOpacity = 0.3 + Math.sin(this.phase) * 0.15
+
+      try {
+        this.map.setPaintProperty('lines-glow-outer', 'line-opacity', pulseOpacity)
+        this.map.setPaintProperty('lines-glow', 'line-opacity', glowOpacity)
+      } catch (e) {
+      }
     }
 
     this.animationId = requestAnimationFrame(this.animate)
@@ -292,6 +336,10 @@ export class FlowLineAnimation {
   private animationId: number | null = null
   private isRunning = false
   private offset = 0
+  private lastTime = 0
+  
+  private static readonly TARGET_FPS = 15
+  private static readonly FRAME_INTERVAL = 1000 / FlowLineAnimation.TARGET_FPS
 
   constructor(map: Map) {
     this.map = map
@@ -300,6 +348,7 @@ export class FlowLineAnimation {
   start(): void {
     if (this.isRunning) return
     this.isRunning = true
+    this.lastTime = performance.now()
     this.animate()
   }
 
@@ -314,15 +363,21 @@ export class FlowLineAnimation {
   private animate = (): void => {
     if (!this.isRunning) return
 
-    this.offset -= 0.5
-    if (this.offset < -30) {
-      this.offset = 0
-    }
+    const currentTime = performance.now()
+    const deltaTime = currentTime - this.lastTime
 
-    try {
-      this.map.setPaintProperty('lines-flow', 'line-dasharray', [0.5, 0.5, 10, 10])
-    } catch (e) {
-      // Layer might not exist
+    if (deltaTime >= FlowLineAnimation.FRAME_INTERVAL) {
+      this.lastTime = currentTime
+
+      this.offset -= 0.5
+      if (this.offset < -30) {
+        this.offset = 0
+      }
+
+      try {
+        this.map.setPaintProperty('lines-flow', 'line-dasharray', [0.5, 0.5, 10, 10])
+      } catch (e) {
+      }
     }
 
     this.animationId = requestAnimationFrame(this.animate)

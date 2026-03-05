@@ -3,7 +3,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, watch } from 'vue'
+import { ref, onMounted, onUnmounted, watch, shallowRef } from 'vue'
 
 interface Disaster {
   id: string
@@ -20,57 +20,71 @@ const props = defineProps<{
 }>()
 
 const canvasRef = ref<HTMLCanvasElement | null>(null)
-let animationId: number | null = null
 let ctx: CanvasRenderingContext2D | null = null
+let animationId: number | null = null
 let time = 0
+let lastFrameTime = 0
+const TARGET_FPS = 30
+const FRAME_INTERVAL = 1000 / TARGET_FPS
 
 const disasterConfigs: Record<string, any> = {
-  STRONG_WIND: {
-    color: '#00bcd4',
-    particleCount: 80,
-    name: '大风'
-  },
-  WILDFIRE: {
-    color: '#ff5722',
-    particleCount: 100,
-    name: '山火'
-  },
-  ICE_STORM: {
-    color: '#03a9f4',
-    particleCount: 60,
-    name: '冰寒'
-  },
-  FLOOD: {
-    color: '#2196f3',
-    particleCount: 80,
-    name: '洪涝'
-  },
-  LIGHTNING: {
-    color: '#ffeb3b',
-    particleCount: 40,
-    name: '雷电'
-  },
-  EARTHQUAKE: {
-    color: '#9c27b0',
-    particleCount: 50,
-    name: '地震'
+  STRONG_WIND: { color: '#00bcd4', particleCount: 80, name: '大风' },
+  WILDFIRE: { color: '#ff5722', particleCount: 100, name: '山火' },
+  ICE_STORM: { color: '#03a9f4', particleCount: 60, name: '冰寒' },
+  FLOOD: { color: '#2196f3', particleCount: 80, name: '洪涝' },
+  LIGHTNING: { color: '#ffeb3b', particleCount: 40, name: '雷电' },
+  EARTHQUAKE: { color: '#9c27b0', particleCount: 50, name: '地震' }
+}
+
+const gradientCache = new Map<string, CanvasGradient>()
+
+const getOrCreateGradient = (
+  key: string,
+  x0: number, y0: number, r0: number,
+  x1: number, y1: number, r1: number,
+  colorStops: Array<[number, string]>
+): CanvasGradient | null => {
+  if (!ctx) return null
+  const cacheKey = `${key}_${Math.round(x0)}_${Math.round(y0)}_${Math.round(r1)}`
+  
+  if (gradientCache.has(cacheKey)) {
+    return gradientCache.get(cacheKey)!
   }
+  
+  const gradient = ctx.createRadialGradient(x0, y0, r0, x1, y1, r1)
+  colorStops.forEach(([stop, color]) => gradient.addColorStop(stop, color))
+  
+  if (gradientCache.size < 50) {
+    gradientCache.set(cacheKey, gradient)
+  }
+  
+  return gradient
 }
 
 const initCanvas = () => {
   if (!canvasRef.value) return
   
   const canvas = canvasRef.value
-  canvas.width = window.innerWidth
-  canvas.height = window.innerHeight
-  ctx = canvas.getContext('2d')
+  const dpr = Math.min(window.devicePixelRatio || 1, 2)
+  canvas.width = window.innerWidth * dpr
+  canvas.height = window.innerHeight * dpr
+  canvas.style.width = window.innerWidth + 'px'
+  canvas.style.height = window.innerHeight + 'px'
+  ctx = canvas.getContext('2d', { alpha: true })
+  ctx?.scale(dpr, dpr)
   
-  window.addEventListener('resize', () => {
-    if (canvasRef.value) {
-      canvasRef.value.width = window.innerWidth
-      canvasRef.value.height = window.innerHeight
-    }
-  })
+  window.addEventListener('resize', handleResize)
+}
+
+const handleResize = () => {
+  if (!canvasRef.value) return
+  const dpr = Math.min(window.devicePixelRatio || 1, 2)
+  canvasRef.value.width = window.innerWidth * dpr
+  canvasRef.value.height = window.innerHeight * dpr
+  canvasRef.value.style.width = window.innerWidth + 'px'
+  canvasRef.value.style.height = window.innerHeight + 'px'
+  ctx?.scale(dpr, dpr)
+  gradientCache.clear()
 }
 
 const lngLatToPixel = (lng: number, lat: number) => {
@@ -93,8 +107,9 @@ const metersToPixels = (meters: number, lat: number) => {
 const drawWindEffect = (centerX: number, centerY: number, radiusPx: number) => {
   if (!ctx) return
   
-  for (let i = 0; i < 30; i++) {
-    const angle = (i / 30) * Math.PI * 2 + time * 0.02
+  const particleCount = Math.min(30, Math.max(10, radiusPx * 0.02))
+  for (let i = 0; i < particleCount; i++) {
+    const angle = (i / particleCount) * Math.PI * 2 + time * 0.02
     const r = radiusPx * (0.3 + Math.sin(time * 0.05 + i) * 0.2)
     const x = centerX + Math.cos(angle) * r
     const y = centerY + Math.sin(angle) * r
@@ -116,7 +131,8 @@ const drawWindEffect = (centerX: number, centerY: number, radiusPx: number) => {
     ctx.stroke()
   }
   
-  for (let i = 0; i < 20; i++) {
+  const lineCount = Math.min(20, Math.max(5, radiusPx * 0.01))
+  for (let i = 0; i < lineCount; i++) {
     const angle = Math.random() * Math.PI * 2
     const r = Math.random() * radiusPx
     const x = centerX + Math.cos(angle) * r
@@ -135,32 +151,40 @@ const drawWindEffect = (centerX: number, centerY: number, radiusPx: number) => {
 const drawFireEffect = (centerX: number, centerY: number, radiusPx: number) => {
   if (!ctx) return
   
-  for (let i = 0; i < 50; i++) {
+  const flameCount = Math.min(50, Math.max(15, radiusPx * 0.03))
+  for (let i = 0; i < flameCount; i++) {
     const x = centerX + (Math.random() - 0.5) * radiusPx * 1.5
     const baseY = centerY + radiusPx * 0.3
     const height = 30 + Math.random() * 50
     const flicker = Math.sin(time * 0.2 + i * 0.5) * 0.3 + 0.7
     
-    const gradient = ctx.createLinearGradient(x, baseY, x, baseY - height * flicker)
-    gradient.addColorStop(0, 'rgba(255, 87, 34, 0)')
-    gradient.addColorStop(0.2, 'rgba(255, 152, 0, 0.9)')
-    gradient.addColorStop(0.5, 'rgba(255, 87, 34, 1)')
-    gradient.addColorStop(0.8, 'rgba(255, 235, 59, 0.8)')
-    gradient.addColorStop(1, 'rgba(255, 255, 200, 0.6)')
-    
-    ctx.beginPath()
-    ctx.moveTo(x - 6, baseY)
-    ctx.quadraticCurveTo(
-      x + Math.sin(time * 0.1 + i) * 8,
-      baseY - height * flicker * 0.5,
-      x + 6,
-      baseY
+    const gradient = getOrCreateGradient(
+      'fire', x, baseY, 0, x, baseY - height * flicker, 0,
+      [
+        [0, 'rgba(255, 87, 34, 0)'],
+        [0.2, 'rgba(255, 152, 0, 0.9)'],
+        [0.5, 'rgba(255, 87, 34, 1)'],
+        [0.8, 'rgba(255, 235, 59, 0.8)'],
+        [1, 'rgba(255, 255, 200, 0.6)']
+      ]
     )
-    ctx.fillStyle = gradient
-    ctx.fill()
+    
+    if (gradient) {
+      ctx.beginPath()
+      ctx.moveTo(x - 6, baseY)
+      ctx.quadraticCurveTo(
+        x + Math.sin(time * 0.1 + i) * 8,
+        baseY - height * flicker * 0.5,
+        x + 6,
+        baseY
+      )
+      ctx.fillStyle = gradient
+      ctx.fill()
+    }
   }
   
-  for (let i = 0; i < 20; i++) {
+  const sparkCount = Math.min(20, Math.max(5, radiusPx * 0.01))
+  for (let i = 0; i < sparkCount; i++) {
     const x = centerX + (Math.random() - 0.5) * radiusPx
     const y = centerY + (Math.random() - 0.5) * radiusPx * 0.5
     const size = 2 + Math.random() * 4
@@ -175,7 +199,8 @@ const drawFireEffect = (centerX: number, centerY: number, radiusPx: number) => {
 const drawIceEffect = (centerX: number, centerY: number, radiusPx: number) => {
   if (!ctx) return
   
-  for (let i = 0; i < 15; i++) {
+  const crystalCount = Math.min(15, Math.max(5, radiusPx * 0.01))
+  for (let i = 0; i < crystalCount; i++) {
     const x = centerX + (Math.random() - 0.5) * radiusPx * 1.5
     const y = centerY + (Math.random() - 0.5) * radiusPx * 1.5
     const size = 8 + Math.random() * 15
@@ -200,13 +225,19 @@ const drawIceEffect = (centerX: number, centerY: number, radiusPx: number) => {
     }
     ctx.closePath()
     
-    const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, size)
-    gradient.addColorStop(0, 'rgba(3, 169, 244, 0.9)')
-    gradient.addColorStop(0.5, 'rgba(144, 202, 249, 0.6)')
-    gradient.addColorStop(1, 'rgba(3, 169, 244, 0.2)')
+    const gradient = getOrCreateGradient(
+      'ice', 0, 0, 0, 0, 0, size,
+      [
+        [0, 'rgba(3, 169, 244, 0.9)'],
+        [0.5, 'rgba(144, 202, 249, 0.6)'],
+        [1, 'rgba(3, 169, 244, 0.2)']
+      ]
+    )
     
-    ctx.fillStyle = gradient
-    ctx.fill()
+    if (gradient) {
+      ctx.fillStyle = gradient
+      ctx.fill()
+    }
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)'
     ctx.lineWidth = 1
     ctx.stroke()
@@ -214,7 +245,8 @@ const drawIceEffect = (centerX: number, centerY: number, radiusPx: number) => {
     ctx.restore()
   }
   
-  for (let i = 0; i < 30; i++) {
+  const snowCount = Math.min(30, Math.max(10, radiusPx * 0.02))
+  for (let i = 0; i < snowCount; i++) {
     const x = centerX + (Math.random() - 0.5) * radiusPx * 2
     const y = centerY + (Math.random() - 0.5) * radiusPx * 2
     const size = 1 + Math.random() * 3
@@ -240,8 +272,9 @@ const drawFloodEffect = (centerX: number, centerY: number, radiusPx: number) => 
     ctx.stroke()
   }
   
-  for (let i = 0; i < 40; i++) {
-    const angle = (i / 40) * Math.PI * 2
+  const dropCount = Math.min(40, Math.max(10, radiusPx * 0.02))
+  for (let i = 0; i < dropCount; i++) {
+    const angle = (i / dropCount) * Math.PI * 2
     const r = radiusPx * (0.5 + Math.sin(time * 0.03 + i * 0.2) * 0.3)
     const x = centerX + Math.cos(angle) * r
     const y = centerY + Math.sin(angle) * r
@@ -252,7 +285,8 @@ const drawFloodEffect = (centerX: number, centerY: number, radiusPx: number) => 
     ctx.fill()
   }
   
-  for (let i = 0; i < 20; i++) {
+  const bubbleCount = Math.min(20, Math.max(5, radiusPx * 0.01))
+  for (let i = 0; i < bubbleCount; i++) {
     const x = centerX + (Math.random() - 0.5) * radiusPx * 1.5
     const y = centerY + (Math.random() - 0.5) * radiusPx * 1.5
     
@@ -295,28 +329,34 @@ const drawLightningEffect = (centerX: number, centerY: number, radiusPx: number)
     ctx.stroke()
   }
   
-  for (let i = 0; i < 10; i++) {
+  const glowCount = Math.min(10, Math.max(3, radiusPx * 0.005))
+  for (let i = 0; i < glowCount; i++) {
     const x = centerX + (Math.random() - 0.5) * radiusPx
     const y = centerY + (Math.random() - 0.5) * radiusPx
     const size = 5 + Math.random() * 10
     
-    const glow = ctx.createRadialGradient(x, y, 0, x, y, size)
-    glow.addColorStop(0, 'rgba(255, 235, 59, 0.9)')
-    glow.addColorStop(0.5, 'rgba(255, 193, 7, 0.5)')
-    glow.addColorStop(1, 'rgba(255, 235, 59, 0)')
+    const glow = getOrCreateGradient(
+      'lightning', x, y, 0, x, y, size,
+      [
+        [0, 'rgba(255, 235, 59, 0.9)'],
+        [0.5, 'rgba(255, 193, 7, 0.5)'],
+        [1, 'rgba(255, 235, 59, 0)']
+      ]
+    )
     
-    ctx.beginPath()
-    ctx.arc(x, y, size, 0, Math.PI * 2)
-    ctx.fillStyle = glow
-    ctx.fill()
+    if (glow) {
+      ctx.beginPath()
+      ctx.arc(x, y, size, 0, Math.PI * 2)
+      ctx.fillStyle = glow
+      ctx.fill()
+    }
   }
 }
 
 const drawEarthquakeEffect = (centerX: number, centerY: number, radiusPx: number) => {
   if (!ctx) return
   
-  const waveCount = 3
-  for (let w = 0; w < waveCount; w++) {
+  for (let w = 0; w < 3; w++) {
     const waveRadius = radiusPx * (0.3 + w * 0.25 + Math.sin(time * 0.08 + w) * 0.1)
     
     ctx.beginPath()
@@ -346,7 +386,8 @@ const drawEarthquakeEffect = (centerX: number, centerY: number, radiusPx: number
     ctx.stroke()
   }
   
-  for (let i = 0; i < 15; i++) {
+  const debrisCount = Math.min(15, Math.max(5, radiusPx * 0.01))
+  for (let i = 0; i < debrisCount; i++) {
     const angle = Math.random() * Math.PI * 2
     const r = Math.random() * radiusPx * 0.7
     const x = centerX + Math.cos(angle) * r
@@ -367,15 +408,23 @@ const drawDisasterZone = (disaster: Disaster) => {
   const config = disasterConfigs[disaster.type] || disasterConfigs.WILDFIRE
   const radiusPx = metersToPixels(disaster.radius, disaster.latitude)
   
-  const gradient = ctx.createRadialGradient(center.x, center.y, 0, center.x, center.y, radiusPx)
-  gradient.addColorStop(0, `${config.color}44`)
-  gradient.addColorStop(0.5, `${config.color}22`)
-  gradient.addColorStop(1, `${config.color}00`)
+  const gradient = getOrCreateGradient(
+    `zone_${disaster.type}`,
+    center.x, center.y, 0,
+    center.x, center.y, radiusPx,
+    [
+      [0, `${config.color}44`],
+      [0.5, `${config.color}22`],
+      [1, `${config.color}00`]
+    ]
+  )
   
-  ctx.beginPath()
-  ctx.arc(center.x, center.y, radiusPx, 0, Math.PI * 2)
-  ctx.fillStyle = gradient
-  ctx.fill()
+  if (gradient) {
+    ctx.beginPath()
+    ctx.arc(center.x, center.y, radiusPx, 0, Math.PI * 2)
+    ctx.fillStyle = gradient
+    ctx.fill()
+  }
   
   ctx.beginPath()
   ctx.arc(center.x, center.y, radiusPx, 0, Math.PI * 2)
@@ -392,18 +441,25 @@ const drawDisasterZone = (disaster: Disaster) => {
   ctx.lineWidth = 2
   ctx.stroke()
   
-  if (disaster.type === 'STRONG_WIND') {
-    drawWindEffect(center.x, center.y, radiusPx)
-  } else if (disaster.type === 'WILDFIRE') {
-    drawFireEffect(center.x, center.y, radiusPx)
-  } else if (disaster.type === 'ICE_STORM') {
-    drawIceEffect(center.x, center.y, radiusPx)
-  } else if (disaster.type === 'FLOOD') {
-    drawFloodEffect(center.x, center.y, radiusPx)
-  } else if (disaster.type === 'LIGHTNING') {
-    drawLightningEffect(center.x, center.y, radiusPx)
-  } else if (disaster.type === 'EARTHQUAKE') {
-    drawEarthquakeEffect(center.x, center.y, radiusPx)
+  switch (disaster.type) {
+    case 'STRONG_WIND':
+      drawWindEffect(center.x, center.y, radiusPx)
+      break
+    case 'WILDFIRE':
+      drawFireEffect(center.x, center.y, radiusPx)
+      break
+    case 'ICE_STORM':
+      drawIceEffect(center.x, center.y, radiusPx)
+      break
+    case 'FLOOD':
+      drawFloodEffect(center.x, center.y, radiusPx)
+      break
+    case 'LIGHTNING':
+      drawLightningEffect(center.x, center.y, radiusPx)
+      break
+    case 'EARTHQUAKE':
+      drawEarthquakeEffect(center.x, center.y, radiusPx)
+      break
   }
   
   ctx.font = 'bold 14px Arial'
@@ -412,19 +468,25 @@ const drawDisasterZone = (disaster: Disaster) => {
   ctx.fillText(config.name, center.x, center.y - radiusPx - 10)
 }
 
-const animate = () => {
+const animate = (currentTime: number) => {
   if (!ctx || !canvasRef.value) {
     animationId = requestAnimationFrame(animate)
     return
   }
   
-  ctx.clearRect(0, 0, canvasRef.value.width, canvasRef.value.height)
+  const deltaTime = currentTime - lastFrameTime
   
-  time++
-  
-  props.disasters.forEach(disaster => {
-    drawDisasterZone(disaster)
-  })
+  if (deltaTime >= FRAME_INTERVAL) {
+    lastFrameTime = currentTime - (deltaTime % FRAME_INTERVAL)
+    
+    ctx.clearRect(0, 0, canvasRef.value.width, canvasRef.value.height)
+    
+    time++
+    
+    props.disasters.forEach(disaster => {
+      drawDisasterZone(disaster)
+    })
+  }
   
   animationId = requestAnimationFrame(animate)
 }
@@ -434,13 +496,17 @@ watch(() => props.disasters, () => {
 
 onMounted(() => {
   initCanvas()
-  animate()
+  lastFrameTime = performance.now()
+  animationId = requestAnimationFrame(animate)
 })
 
 onUnmounted(() => {
   if (animationId) {
     cancelAnimationFrame(animationId)
+    animationId = null
   }
+  window.removeEventListener('resize', handleResize)
+  gradientCache.clear()
 })
 </script>
 
