@@ -277,6 +277,10 @@ const handleLogin = async () => {
         // 显示成功提示
         ElMessage.success('登录成功')
         
+        // 设置标记，登录后显示引导
+        console.log('登录成功，设置 just_logged_in 标记')
+        sessionStorage.setItem('just_logged_in', 'true')
+        
         // 跳转到首页
         router.push('/')
       } else {

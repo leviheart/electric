@@ -32,16 +32,11 @@ import path from 'path'
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  /**
-   * plugins - 插件配置
-   * ┌─────────────────────────────────────────────────────────────────────────┐
-   * │ @vitejs/plugin-vue: Vue 3 单文件组件支持                                │
-   * │ - 编译 .vue 文件                                                        │
-   * │ - 支持 <script setup> 语法                                              │
-   * │ - 支持 TypeScript                                                       │
-   │ └─────────────────────────────────────────────────────────────────────────┘
-   */
   plugins: [vue()],
+  
+  define: {
+    global: 'globalThis'
+  },
 
   /**
    * resolve - 模块解析配置

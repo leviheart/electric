@@ -2,10 +2,18 @@
   <div class="dashboard-view">
     <div class="dashboard-header">
       <h1>数据统计仪表盘</h1>
-      <el-button @click="refreshData" :loading="loading">
-        <el-icon><Refresh /></el-icon>
-        刷新数据
-      </el-button>
+      <div class="header-actions">
+        <PageHelp
+          page-key="dashboard"
+          page-title="数据统计"
+          :help-content="dashboardHelpContent"
+          :tips="dashboardHelpTips"
+        />
+        <el-button @click="refreshData" :loading="loading">
+          <el-icon><Refresh /></el-icon>
+          刷新数据
+        </el-button>
+      </div>
     </div>
     
     <div class="stats-cards">
@@ -157,6 +165,33 @@
 import { ref, onMounted, computed } from 'vue'
 import { Refresh } from '@element-plus/icons-vue'
 import { getDashboardStats, type DashboardStats } from '../api/stats'
+import PageHelp from '../components/common/PageHelp.vue'
+
+const dashboardHelpContent = [
+  {
+    icon: '📊',
+    title: '统计卡片',
+    items: [
+      '显示变电站、线路、台区、用户总数',
+      '点击卡片可查看详细数据',
+      '数据实时更新'
+    ]
+  },
+  {
+    icon: '📈',
+    title: '图表分析',
+    items: [
+      '运行状态分布饼图',
+      '电压等级分布柱状图',
+      '告警统计和负载趋势'
+    ]
+  }
+]
+
+const dashboardHelpTips = [
+  '点击刷新按钮获取最新数据',
+  '图表支持鼠标悬停查看详情'
+]
 
 const loading = ref(false)
 const stats = ref<DashboardStats>({
@@ -213,6 +248,7 @@ const refreshData = async () => {
     renderCharts()
   } catch (error) {
     console.error('获取统计数据失败:', error)
+    ElMessage.error('获取统计数据失败，请稍后重试')
   } finally {
     loading.value = false
   }
@@ -354,6 +390,26 @@ onMounted(() => {
   padding: 20px;
   max-width: 1400px;
   margin: 0 auto;
+  height: 100%;
+  overflow-y: auto;
+}
+
+.dashboard-view::-webkit-scrollbar {
+  width: 6px;
+}
+
+.dashboard-view::-webkit-scrollbar-track {
+  background: rgba(0, 240, 255, 0.05);
+  border-radius: 3px;
+}
+
+.dashboard-view::-webkit-scrollbar-thumb {
+  background: rgba(0, 240, 255, 0.3);
+  border-radius: 3px;
+}
+
+.dashboard-view::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 240, 255, 0.5);
 }
 
 .dashboard-header {

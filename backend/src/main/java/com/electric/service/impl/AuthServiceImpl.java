@@ -4,13 +4,18 @@ import com.electric.dto.LoginRequest;
 import com.electric.dto.LoginResponse;
 import com.electric.dto.UserInfo;
 import com.electric.exception.BusinessException;
+import com.electric.model.Role;
 import com.electric.model.User;
+import com.electric.repository.RoleRepository;
 import com.electric.repository.UserRepository;
 import com.electric.security.JwtUtil;
 import com.electric.service.AuthService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * AuthServiceImpl - 认证服务实现类
@@ -112,14 +117,16 @@ public class AuthServiceImpl implements AuthService {
      * └─────────────────────────────────────────────────────────────────────────┘
      */
     private final UserRepository userRepository;
+    private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
     
     @Value("${jwt.expiration}")
     private Long jwtExpiration;
 
-    public AuthServiceImpl(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtUtil jwtUtil) {
+    public AuthServiceImpl(UserRepository userRepository, RoleRepository roleRepository, PasswordEncoder passwordEncoder, JwtUtil jwtUtil) {
         this.userRepository = userRepository;
+        this.roleRepository = roleRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtUtil = jwtUtil;
     }
@@ -242,22 +249,40 @@ public class AuthServiceImpl implements AuthService {
      */
     @Override
     public boolean register(LoginRequest loginRequest) {
-        // 步骤1：检查用户名是否已存在
         if (userRepository.existsByUsername(loginRequest.getUsername())) {
             throw BusinessException.conflict("用户名已存在");
         }
         
-        // 步骤2：创建用户对象
         User user = new User();
         user.setUsername(loginRequest.getUsername());
-        
-        // 步骤3：密码加密（关键！）
         user.setPassword(passwordEncoder.encode(loginRequest.getPassword()));
-        
-        // 步骤4：设置账户状态
         user.setEnabled(true);
         
-        // 步骤5：保存到数据库
+        String roleName = loginRequest.getRole();
+        if (roleName != null && !roleName.isEmpty()) {
+            Role role = roleRepository.findByName(roleName)
+                    .orElseGet(() -> {
+                        Role newRole = new Role();
+                        newRole.setName(roleName);
+                        newRole.setDescription(roleName.equals("ADMIN") ? "管理员" : "普通用户");
+                        return roleRepository.save(newRole);
+                    });
+            Set<Role> roles = new HashSet<>();
+            roles.add(role);
+            user.setRoles(roles);
+        } else {
+            Role userRole = roleRepository.findByName("USER")
+                    .orElseGet(() -> {
+                        Role newRole = new Role();
+                        newRole.setName("USER");
+                        newRole.setDescription("普通用户");
+                        return roleRepository.save(newRole);
+                    });
+            Set<Role> roles = new HashSet<>();
+            roles.add(userRole);
+            user.setRoles(roles);
+        }
+        
         userRepository.save(user);
         return true;
     }

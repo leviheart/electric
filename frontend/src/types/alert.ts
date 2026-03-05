@@ -15,7 +15,13 @@ export enum AlertType {
   VOLTAGE_ABNORMAL = 'VOLTAGE_ABNORMAL',
   TEMPERATURE_HIGH = 'TEMPERATURE_HIGH',
   FAULT = 'FAULT',
-  MAINTENANCE = 'MAINTENANCE'
+  MAINTENANCE = 'MAINTENANCE',
+  STRONG_WIND = 'STRONG_WIND',
+  WILDFIRE = 'WILDFIRE',
+  ICE_STORM = 'ICE_STORM',
+  FLOOD = 'FLOOD',
+  LIGHTNING = 'LIGHTNING',
+  EARTHQUAKE = 'EARTHQUAKE'
 }
 
 /**
@@ -108,7 +114,13 @@ export const AlertTypeConfig = {
   [AlertType.VOLTAGE_ABNORMAL]: { label: '电压异常', icon: '⚡' },
   [AlertType.TEMPERATURE_HIGH]: { label: '温度过高', icon: '🌡️' },
   [AlertType.FAULT]: { label: '故障告警', icon: '⚠️' },
-  [AlertType.MAINTENANCE]: { label: '检修提醒', icon: '🔧' }
+  [AlertType.MAINTENANCE]: { label: '检修提醒', icon: '🔧' },
+  [AlertType.STRONG_WIND]: { label: '大风预警', icon: '💨', isNaturalDisaster: true },
+  [AlertType.WILDFIRE]: { label: '山火预警', icon: '🔥', isNaturalDisaster: true },
+  [AlertType.ICE_STORM]: { label: '冰寒预警', icon: '❄️', isNaturalDisaster: true },
+  [AlertType.FLOOD]: { label: '洪涝预警', icon: '🌊', isNaturalDisaster: true },
+  [AlertType.LIGHTNING]: { label: '雷电预警', icon: '⛈️', isNaturalDisaster: true },
+  [AlertType.EARTHQUAKE]: { label: '地震预警', icon: '🌍', isNaturalDisaster: true }
 }
 
 /**

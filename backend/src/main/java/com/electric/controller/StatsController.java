@@ -3,6 +3,7 @@ package com.electric.controller;
 import com.electric.dto.DashboardStats;
 import com.electric.model.ApiResponse;
 import com.electric.model.Alert;
+import com.electric.model.Area;
 import com.electric.model.Substation;
 import com.electric.model.TransmissionLine;
 import com.electric.service.AlertService;
@@ -152,19 +153,60 @@ public class StatsController {
     private DashboardStats.DeviceStats getDeviceStats() {
         DashboardStats.DeviceStats stats = new DashboardStats.DeviceStats();
         
-        stats.setTotalSubstations(substationService.getAllSubstations().size());
-        stats.setTotalLines(transmissionLineService.getAllTransmissionLines().size());
-        stats.setTotalAreas(areaService.getAllAreas().size());
+        List<Substation> substations = substationService.getAllSubstations();
+        List<TransmissionLine> lines = transmissionLineService.getAllTransmissionLines();
+        List<Area> areas = areaService.getAllAreas();
         
-        long totalCustomers = areaService.getAllAreas().stream()
+        stats.setTotalSubstations(substations.size());
+        stats.setTotalLines(lines.size());
+        stats.setTotalAreas(areas.size());
+        
+        long totalCustomers = areas.stream()
                 .mapToLong(area -> area.getCustomerCount() != null ? area.getCustomerCount() : 0)
                 .sum();
         stats.setTotalCustomers(totalCustomers);
         
-        double totalLength = transmissionLineService.getAllTransmissionLines().stream()
+        double totalLength = lines.stream()
                 .mapToDouble(line -> line.getLength() != null ? line.getLength() : 0)
                 .sum();
         stats.setTotalLength((long) totalLength);
+        
+        double avgLoadRate = 0;
+        int loadCount = 0;
+        double sumLoadRate = 0;
+        
+        for (Substation s : substations) {
+            if (s.getLoadRate() != null) {
+                sumLoadRate += s.getLoadRate();
+                loadCount++;
+            }
+        }
+        for (TransmissionLine l : lines) {
+            if (l.getLoadRate() != null) {
+                sumLoadRate += l.getLoadRate();
+                loadCount++;
+            }
+        }
+        for (Area a : areas) {
+            if (a.getLoadRate() != null) {
+                sumLoadRate += a.getLoadRate();
+                loadCount++;
+            }
+        }
+        if (loadCount > 0) {
+            avgLoadRate = sumLoadRate / loadCount;
+        }
+        stats.setAvgLoadRate(Math.round(avgLoadRate * 10.0) / 10.0);
+        
+        double totalCapacity = substations.stream()
+                .mapToDouble(s -> s.getCapacity() != null ? s.getCapacity() : 0)
+                .sum();
+        stats.setTotalCapacity(Math.round(totalCapacity * 10.0) / 10.0);
+        
+        double totalTransformerCapacity = areas.stream()
+                .mapToDouble(a -> a.getTransformerCapacity() != null ? a.getTransformerCapacity() : 0)
+                .sum();
+        stats.setTotalTransformerCapacity(Math.round(totalTransformerCapacity * 10.0) / 10.0);
         
         return stats;
     }

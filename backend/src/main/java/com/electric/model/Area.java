@@ -1,9 +1,11 @@
 package com.electric.model;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Lob;
 import jakarta.validation.constraints.NotBlank;
 
 /**
@@ -94,7 +96,114 @@ public class Area {
      * - 多边形顶点，首尾相连形成封闭区域
      * - 用于在地图上绘制台区范围
      */
+    @Column(columnDefinition = "TEXT")
     private String geometry;
+    
+    /**
+     * 负载率
+     * - 0-100+ 的数值
+     * - 用于动态显示台区负载状态
+     */
+    private Double loadRate;
+    
+    /**
+     * 配变容量
+     * - 单位：kVA
+     * - 变压器的额定容量
+     */
+    private Integer transformerCapacity;
+    
+    /**
+     * 变压器位置
+     * - JSON 格式：{"lat": 纬度, "lng": 经度}
+     * - 配电变压器的地理位置
+     */
+    @Column(columnDefinition = "TEXT")
+    private String transformerLocation;
+    
+    /**
+     * 重要用户数量
+     * - 台区内重要客户的数量
+     */
+    private Integer importantCustomerCount;
+
+    /**
+     * 设备编号
+     */
+    private String deviceCode;
+
+    /**
+     * 投运日期
+     */
+    private String commissionDate;
+
+    /**
+     * 变压器厂家
+     */
+    private String transformerManufacturer;
+
+    /**
+     * 变压器型号
+     */
+    private String transformerModel;
+
+    /**
+     * 检修周期
+     * - 单位：月
+     */
+    private Integer maintenanceCycle;
+
+    /**
+     * 上次检修日期
+     */
+    private String lastMaintenanceDate;
+
+    /**
+     * 下次检修日期
+     */
+    private String nextMaintenanceDate;
+
+    /**
+     * 设计寿命
+     * - 单位：年
+     */
+    private Integer designLife;
+
+    /**
+     * 负责人
+     */
+    private String manager;
+
+    /**
+     * 联系电话
+     */
+    private String contactPhone;
+
+    /**
+     * 台区地址
+     */
+    private String address;
+
+    /**
+     * 供电范围
+     */
+    private String powerSupplyRange;
+
+    /**
+     * 建设性质
+     */
+    private String constructionType;
+
+    /**
+     * 资产性质
+     */
+    private String assetType;
+
+    /**
+     * 备注
+     */
+    @Column(columnDefinition = "TEXT")
+    private String remark;
 
     // ==================== 构造函数 ====================
 
@@ -170,5 +279,157 @@ public class Area {
 
     public void setGeometry(String geometry) {
         this.geometry = geometry;
+    }
+    
+    public Double getLoadRate() {
+        return loadRate;
+    }
+    
+    public void setLoadRate(Double loadRate) {
+        this.loadRate = loadRate;
+    }
+    
+    public Integer getTransformerCapacity() {
+        return transformerCapacity;
+    }
+    
+    public void setTransformerCapacity(Integer transformerCapacity) {
+        this.transformerCapacity = transformerCapacity;
+    }
+    
+    public String getTransformerLocation() {
+        return transformerLocation;
+    }
+    
+    public void setTransformerLocation(String transformerLocation) {
+        this.transformerLocation = transformerLocation;
+    }
+    
+    public Integer getImportantCustomerCount() {
+        return importantCustomerCount;
+    }
+    
+    public void setImportantCustomerCount(Integer importantCustomerCount) {
+        this.importantCustomerCount = importantCustomerCount;
+    }
+
+    public String getDeviceCode() {
+        return deviceCode;
+    }
+
+    public void setDeviceCode(String deviceCode) {
+        this.deviceCode = deviceCode;
+    }
+
+    public String getCommissionDate() {
+        return commissionDate;
+    }
+
+    public void setCommissionDate(String commissionDate) {
+        this.commissionDate = commissionDate;
+    }
+
+    public String getTransformerManufacturer() {
+        return transformerManufacturer;
+    }
+
+    public void setTransformerManufacturer(String transformerManufacturer) {
+        this.transformerManufacturer = transformerManufacturer;
+    }
+
+    public String getTransformerModel() {
+        return transformerModel;
+    }
+
+    public void setTransformerModel(String transformerModel) {
+        this.transformerModel = transformerModel;
+    }
+
+    public Integer getMaintenanceCycle() {
+        return maintenanceCycle;
+    }
+
+    public void setMaintenanceCycle(Integer maintenanceCycle) {
+        this.maintenanceCycle = maintenanceCycle;
+    }
+
+    public String getLastMaintenanceDate() {
+        return lastMaintenanceDate;
+    }
+
+    public void setLastMaintenanceDate(String lastMaintenanceDate) {
+        this.lastMaintenanceDate = lastMaintenanceDate;
+    }
+
+    public String getNextMaintenanceDate() {
+        return nextMaintenanceDate;
+    }
+
+    public void setNextMaintenanceDate(String nextMaintenanceDate) {
+        this.nextMaintenanceDate = nextMaintenanceDate;
+    }
+
+    public Integer getDesignLife() {
+        return designLife;
+    }
+
+    public void setDesignLife(Integer designLife) {
+        this.designLife = designLife;
+    }
+
+    public String getManager() {
+        return manager;
+    }
+
+    public void setManager(String manager) {
+        this.manager = manager;
+    }
+
+    public String getContactPhone() {
+        return contactPhone;
+    }
+
+    public void setContactPhone(String contactPhone) {
+        this.contactPhone = contactPhone;
+    }
+
+    public String getAddress() {
+        return address;
+    }
+
+    public void setAddress(String address) {
+        this.address = address;
+    }
+
+    public String getPowerSupplyRange() {
+        return powerSupplyRange;
+    }
+
+    public void setPowerSupplyRange(String powerSupplyRange) {
+        this.powerSupplyRange = powerSupplyRange;
+    }
+
+    public String getConstructionType() {
+        return constructionType;
+    }
+
+    public void setConstructionType(String constructionType) {
+        this.constructionType = constructionType;
+    }
+
+    public String getAssetType() {
+        return assetType;
+    }
+
+    public void setAssetType(String assetType) {
+        this.assetType = assetType;
+    }
+
+    public String getRemark() {
+        return remark;
+    }
+
+    public void setRemark(String remark) {
+        this.remark = remark;
     }
 }

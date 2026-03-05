@@ -4,10 +4,44 @@
     <nav class="app-nav">
       <div class="nav-left">
         <router-link to="/" class="nav-link" active-class="active">首页</router-link>
+        <router-link to="/users" class="nav-link" active-class="active">用户管理</router-link>
         <router-link to="/about" class="nav-link" active-class="active">关于</router-link>
         <router-link to="/settings" class="nav-link" active-class="active">设置</router-link>
       </div>
+      <div class="nav-center">
+        <h1 class="app-title">电网地图系统</h1>
+        <SearchBox
+          v-if="showSearch"
+          :show-filters="true"
+          @select="handleSearchSelect"
+          @clear="handleSearchClear"
+        />
+      </div>
       <div class="nav-right">
+        <div v-if="showSearch" class="filter-group">
+          <el-select
+            v-model="filterStore.voltageLevel"
+            placeholder="电压等级"
+            size="small"
+            clearable
+            @change="handleFilterChange"
+          >
+            <el-option label="220kV" value="220kV" />
+            <el-option label="110kV" value="110kV" />
+            <el-option label="35kV" value="35kV" />
+          </el-select>
+          <el-select
+            v-model="filterStore.status"
+            placeholder="运行状态"
+            size="small"
+            clearable
+            @change="handleFilterChange"
+          >
+            <el-option label="运行中" value="运行中" />
+            <el-option label="备用" value="备用" />
+            <el-option label="检修中" value="检修中" />
+          </el-select>
+        </div>
         <span v-if="authStore.isAuthenticated" class="user-info">
           {{ authStore.username }}
         </span>
@@ -24,47 +58,62 @@
     <main class="app-main">
       <router-view />
     </main>
+    <AlertPanel v-if="showSearch" @locate="handleAlertLocate" />
   </div>
 </template>
 
 <script setup lang="ts">
-/**
- * App.vue - 电网地图系统根组件
- * 
- * 功能说明：
- * 提供应用的整体布局结构
- * 包含导航栏和路由出口
- * 支持用户登出功能
- * 应用用户设置（网格背景等）
- * 
- * 布局结构：
- * - 网格背景层：可显示/隐藏的网格背景
- * - 导航栏：首页、关于、设置、用户信息、登出按钮
- * - 主内容区：路由视图
- * 
- * 文件关联：
- * - router/index.ts: 路由配置
- * - views/*.vue: 页面组件
- * - stores/authStore.ts: 认证状态管理
- * - stores/settingsStore.ts: 设置状态管理
- */
-
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
+import { computed, ref } from 'vue'
 import { useAuthStore } from './stores/authStore'
 import { useSettingsStore } from './stores/settingsStore'
+import { useSearchStore } from './stores/searchStore'
+import { useFilterStore } from './stores/filterStore'
+import { useAlertStore } from './stores/alertStore'
+import SearchBox from './components/SearchBox.vue'
+import AlertPanel from './components/AlertPanel.vue'
+import type { Alert } from './types/alert'
 
 const router = useRouter()
+const route = useRoute()
 const authStore = useAuthStore()
 const settingsStore = useSettingsStore()
+const searchStore = useSearchStore()
+const filterStore = useFilterStore()
+const alertStore = useAlertStore()
+
+const showSearch = computed(() => route.path === '/')
 
 const handleLogout = () => {
   authStore.logout()
   router.push('/login')
 }
+
+const handleSearchSelect = (result: any) => {
+  searchStore.selectResult(result)
+}
+
+const handleSearchClear = () => {
+  searchStore.clearResult()
+}
+
+const handleFilterChange = () => {
+  filterStore.setFilter(filterStore.voltageLevel, filterStore.status)
+}
+
+const mapRef = ref<any>(null)
+
+const handleAlertLocate = (alert: Alert) => {
+  if (alert.latitude && alert.longitude) {
+    searchStore.selectResult({
+      type: 'alert',
+      data: alert
+    })
+  }
+}
 </script>
 
 <style>
-/* 全局样式重置 */
 * {
   margin: 0;
   padding: 0;
@@ -80,6 +129,39 @@ html, body {
 #app {
   width: 100%;
   height: 100%;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, rgba(0, 240, 255, 0.3), rgba(0, 128, 255, 0.3));
+  border-radius: 4px;
+  transition: background 0.3s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, rgba(0, 240, 255, 0.5), rgba(0, 128, 255, 0.5));
+}
+
+::-webkit-scrollbar-corner {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.el-table__body-wrapper::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.el-select-dropdown__wrap::-webkit-scrollbar {
+  width: 6px;
 }
 </style>
 
@@ -119,30 +201,82 @@ html, body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 15px 20px;
-  background: rgba(0, 0, 0, 0.3);
-  border-bottom: 1px solid rgba(0, 240, 255, 0.3);
+  padding: 8px 20px;
+  background: rgba(10, 10, 26, 0.95);
+  border-bottom: 1px solid rgba(0, 240, 255, 0.2);
   position: relative;
   z-index: 10;
+  flex-shrink: 0;
 }
 
 .nav-left {
   display: flex;
+  gap: 15px;
+  flex: 1;
+}
+
+.nav-center {
+  display: flex;
+  align-items: center;
   gap: 20px;
+  flex: 2;
+  justify-content: center;
+}
+
+.app-title {
+  font-size: 1.3rem;
+  margin: 0;
+  color: #00f0ff;
+  text-shadow: 0 0 20px rgba(0, 240, 255, 0.5);
+  letter-spacing: 4px;
+  font-weight: 300;
+  white-space: nowrap;
+}
+
+.nav-center :deep(.search-box) {
+  max-width: 280px;
 }
 
 .nav-right {
   display: flex;
   align-items: center;
   gap: 15px;
+  flex: 1;
+  justify-content: flex-end;
+}
+
+.filter-group {
+  display: flex;
+  gap: 10px;
+}
+
+.filter-group :deep(.el-select) {
+  width: 100px;
+}
+
+.filter-group :deep(.el-input__wrapper) {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(0, 240, 255, 0.3);
+  border-radius: 4px;
+  box-shadow: none;
+}
+
+.filter-group :deep(.el-input__inner) {
+  color: #ffffff;
+  font-size: 12px;
+}
+
+.filter-group :deep(.el-input__inner::placeholder) {
+  color: rgba(255, 255, 255, 0.5);
 }
 
 .nav-link {
   color: #a0a0a0;
   text-decoration: none;
-  padding: 8px 16px;
+  padding: 6px 14px;
   border-radius: 4px;
   transition: all 0.3s ease;
+  font-size: 0.9rem;
 }
 
 .nav-link:hover {
@@ -158,7 +292,7 @@ html, body {
 
 .user-info {
   color: #00f0ff;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
 }
 
 .app-main {
@@ -168,7 +302,6 @@ html, body {
   overflow: hidden;
 }
 
-/* 自定义弹出窗口样式 */
 :global(.custom-popup) {
   background: rgba(10, 10, 26, 0.95);
   border: 1px solid rgba(0, 240, 255, 0.5);
@@ -251,21 +384,44 @@ html, body {
   font-size: 0.8rem;
 }
 
-/* 响应式设计 */
 @media (max-width: 1920px) {
   .app-nav {
-    padding: 12px 15px;
+    padding: 6px 15px;
+  }
+  
+  .app-title {
+    font-size: 1.1rem;
+  }
+  
+  .nav-center :deep(.search-box) {
+    max-width: 250px;
+  }
+  
+  .filter-group :deep(.el-select) {
+    width: 90px;
   }
 }
 
 @media (min-width: 3840px) {
   .app-nav {
-    padding: 20px 40px;
+    padding: 12px 40px;
+  }
+  
+  .app-title {
+    font-size: 1.6rem;
   }
   
   .nav-link {
-    font-size: 1.2rem;
-    padding: 12px 24px;
+    font-size: 1.1rem;
+    padding: 8px 18px;
+  }
+  
+  .nav-center :deep(.search-box) {
+    max-width: 350px;
+  }
+  
+  .filter-group :deep(.el-select) {
+    width: 120px;
   }
 }
 </style>

@@ -34,6 +34,16 @@ export function getAreaTopology(id: number): Promise<ApiResponse<TopologyData>> 
   return request.get(`/api/topology/area/${id}`)
 }
 
+export function getTopology(type: string, id: number): Promise<ApiResponse<TopologyData>> {
+  const typeMap: Record<string, string> = {
+    'substation': 'substation',
+    'line': 'line',
+    'area': 'area'
+  }
+  const endpoint = typeMap[type] || type
+  return request.get(`/api/topology/${endpoint}/${id}`)
+}
+
 export function analyzeImpact(type: string, id: number): Promise<ApiResponse<TopologyData>> {
   return request.get(`/api/topology/impact/${type}/${id}`)
 }

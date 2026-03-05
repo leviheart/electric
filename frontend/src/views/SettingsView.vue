@@ -1,323 +1,321 @@
 <template>
-  <!--
-    设置页面容器
-    - 使用 flex 布局实现垂直水平居中
-    - 全屏高度，带深色背景
-  -->
-  <div class="settings-view">
-    <!--
-      设置卡片
-      - 包含标题、设置项、操作按钮
-      - 半透明背景，带发光边框效果
-    -->
-    <div class="settings-card">
-      <!-- 页面标题 -->
-      <h1>系统设置</h1>
-      
-      <!--
-        设置内容区域
-        - 包含所有设置项
-        - 每个设置项一行
-      -->
-      <div class="settings-content">
-        <!--
-          地图样式设置项
-          - 左侧显示标签
-          - 右侧显示下拉选择框
-        -->
-        <div class="setting-item">
-          <span class="setting-label">地图样式</span>
-          <!--
-            el-select 下拉选择框
-            - v-model: 双向绑定选中的值
-            - placeholder: 占位提示文字
-            - @change: 值改变时触发保存
-          -->
-          <el-select v-model="settingsStore.mapStyle" placeholder="选择地图样式" @change="handleChange">
-            <!-- 深色模式选项 -->
-            <el-option label="深色模式" value="dark" />
-            <!-- 浅色模式选项 -->
-            <el-option label="浅色模式" value="light" />
-            <!-- 卫星图选项 -->
-            <el-option label="卫星图" value="satellite" />
-          </el-select>
+  <TechPage title="系统设置">
+    <div class="settings-container">
+      <div class="settings-section">
+        <div class="section-header">
+          <div class="section-icon">
+            <el-icon :size="24"><MapLocation /></el-icon>
+          </div>
+          <div class="section-title">
+            <h3>地图设置</h3>
+            <p>配置地图显示样式和默认参数</p>
+          </div>
         </div>
-        
-        <!--
-          默认缩放级别设置项
-          - 使用滑块选择
-        -->
-        <div class="setting-item">
-          <span class="setting-label">默认缩放级别</span>
-          <!--
-            el-slider 滑块组件
-            - v-model: 双向绑定当前值
-            - :min: 最小值 8
-            - :max: 最大值 18
-            - show-input: 显示输入框
-            - @change: 值改变时触发保存
-          -->
-          <el-slider v-model="settingsStore.defaultZoom" :min="8" :max="18" show-input @change="handleChange" />
-        </div>
-        
-        <!--
-          自动加载数据设置项
-          - 使用开关切换
-        -->
-        <div class="setting-item">
-          <span class="setting-label">自动加载数据</span>
-          <!--
-            el-switch 开关组件
-            - v-model: 双向绑定开关状态
-            - @change: 状态改变时触发保存
-          -->
-          <el-switch v-model="settingsStore.autoLoad" @change="handleChange" />
-        </div>
-        
-        <!--
-          显示网格背景设置项
-          - 使用开关切换
-          - 切换后立即生效
-        -->
-        <div class="setting-item">
-          <span class="setting-label">显示网格背景</span>
-          <!--
-            el-switch 开关组件
-            - 切换后立即生效，无需刷新页面
-          -->
-          <el-switch v-model="settingsStore.showGrid" @change="handleChange" />
+        <div class="settings-list">
+          <div class="setting-item">
+            <div class="setting-info">
+              <span class="setting-label">地图样式</span>
+              <span class="setting-desc">选择地图的显示风格</span>
+            </div>
+            <el-select v-model="settingsStore.mapStyle" placeholder="选择地图样式" @change="handleChange">
+              <el-option label="深色模式" value="dark" />
+              <el-option label="浅色模式" value="light" />
+              <el-option label="卫星图" value="satellite" />
+            </el-select>
+          </div>
+          <div class="setting-item">
+            <div class="setting-info">
+              <span class="setting-label">默认缩放级别</span>
+              <span class="setting-desc">地图初始加载时的缩放级别</span>
+            </div>
+            <div class="slider-container">
+              <el-slider v-model="settingsStore.defaultZoom" :min="8" :max="18" show-input @change="handleChange" />
+            </div>
+          </div>
         </div>
       </div>
-      
-      <!--
-        底部按钮区域
-        - 包含保存、重置、返回按钮
-      -->
-      <div class="settings-footer">
-        <!--
-          保存按钮
-          - type="primary": 主要按钮样式
-          - @click="saveSettings": 点击保存设置
-        -->
-        <el-button @click="saveSettings" type="primary">保存设置</el-button>
-        <!--
-          重置按钮
-          - @click="resetSettings": 点击重置为默认值
-        -->
-        <el-button @click="resetSettings">重置</el-button>
-        <!--
-          返回首页按钮
-          - 使用 router.push 跳转
-        -->
-        <el-button @click="$router.push('/')">返回首页</el-button>
+
+      <div class="settings-section">
+        <div class="section-header">
+          <div class="section-icon">
+            <el-icon :size="24"><Setting /></el-icon>
+          </div>
+          <div class="section-title">
+            <h3>数据设置</h3>
+            <p>配置数据加载和显示选项</p>
+          </div>
+        </div>
+        <div class="settings-list">
+          <div class="setting-item">
+            <div class="setting-info">
+              <span class="setting-label">自动加载数据</span>
+              <span class="setting-desc">页面加载时自动获取设备数据</span>
+            </div>
+            <el-switch v-model="settingsStore.autoLoad" @change="handleChange" />
+          </div>
+          <div class="setting-item">
+            <div class="setting-info">
+              <span class="setting-label">显示网格背景</span>
+              <span class="setting-desc">在地图上显示网格参考线</span>
+            </div>
+            <el-switch v-model="settingsStore.showGrid" @change="handleChange" />
+          </div>
+          <div class="setting-item">
+            <div class="setting-info">
+              <span class="setting-label">启用动画效果</span>
+              <span class="setting-desc">启用页面过渡和交互动画</span>
+            </div>
+            <el-switch v-model="settingsStore.enableAnimations" @change="handleChange" />
+          </div>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <div class="section-header">
+          <div class="section-icon">
+            <el-icon :size="24"><Bell /></el-icon>
+          </div>
+          <div class="section-title">
+            <h3>通知设置</h3>
+            <p>配置告警和消息通知选项</p>
+          </div>
+        </div>
+        <div class="settings-list">
+          <div class="setting-item">
+            <div class="setting-info">
+              <span class="setting-label">启用告警通知</span>
+              <span class="setting-desc">接收实时告警推送通知</span>
+            </div>
+            <el-switch v-model="settingsStore.enableNotifications" @change="handleChange" />
+          </div>
+          <div class="setting-item">
+            <div class="setting-info">
+              <span class="setting-label">告警声音提醒</span>
+              <span class="setting-desc">告警触发时播放提示音</span>
+            </div>
+            <el-switch v-model="settingsStore.soundEnabled" @change="handleChange" />
+          </div>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <div class="section-header">
+          <div class="section-icon">
+            <el-icon :size="24"><User /></el-icon>
+          </div>
+          <div class="section-title">
+            <h3>账户设置</h3>
+            <p>管理您的账户和偏好</p>
+          </div>
+        </div>
+        <div class="settings-list">
+          <div class="setting-item clickable" @click="showPasswordDialog = true">
+            <div class="setting-info">
+              <span class="setting-label">修改密码</span>
+              <span class="setting-desc">更新您的登录密码</span>
+            </div>
+            <el-icon><ArrowRight /></el-icon>
+          </div>
+          <div class="setting-item clickable" @click="handleLogout">
+            <div class="setting-info">
+              <span class="setting-label danger">退出登录</span>
+              <span class="setting-desc">退出当前账户</span>
+            </div>
+            <el-icon><ArrowRight /></el-icon>
+          </div>
+        </div>
       </div>
     </div>
-  </div>
+
+    <el-dialog v-model="showPasswordDialog" title="修改密码" width="400px">
+      <el-form :model="passwordForm" label-width="100px">
+        <el-form-item label="当前密码">
+          <el-input v-model="passwordForm.oldPassword" type="password" placeholder="请输入当前密码" show-password />
+        </el-form-item>
+        <el-form-item label="新密码">
+          <el-input v-model="passwordForm.newPassword" type="password" placeholder="请输入新密码" show-password />
+        </el-form-item>
+        <el-form-item label="确认新密码">
+          <el-input v-model="passwordForm.confirmPassword" type="password" placeholder="请再次输入新密码" show-password />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <TechButton @click="showPasswordDialog = false">取消</TechButton>
+        <TechButton type="primary" @click="handleChangePassword">确定</TechButton>
+      </template>
+    </el-dialog>
+  </TechPage>
 </template>
 
 <script setup lang="ts">
-/**
- * SettingsView.vue - 设置页面
- * 
- * 功能说明：
- * 提供系统配置选项，包括：
- * 1. 地图样式选择（深色/浅色/卫星图）
- * 2. 默认缩放级别设置
- * 3. 自动加载数据开关
- * 4. 网格背景显示开关
- * 
- * 设置持久化：
- * - 设置保存在 localStorage 中
- * - 页面刷新后自动恢复
- * - 部分设置需要刷新页面才能生效
- * 
- * 文件关联：
- * - stores/settingsStore.ts: 设置状态管理
- * - components/MapContainer.vue: 应用地图样式和缩放设置
- * - App.vue: 应用网格背景设置
- */
-
-// ==================== 导入依赖 ====================
-
-/**
- * Element Plus 组件
- * - ElMessage: 消息提示组件
- */
+import { ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import { MapLocation, Setting, Bell, User, ArrowRight } from '@element-plus/icons-vue'
+import TechPage from '@/components/common/TechPage.vue'
+import TechButton from '@/components/common/TechButton.vue'
+import { useSettingsStore } from '@/stores/settingsStore'
+import { useAuthStore } from '@/stores/authStore'
 
-/**
- * 设置状态管理
- * - useSettingsStore: 获取设置 store 实例
- */
-import { useSettingsStore } from '../stores/settingsStore'
-
-// ==================== 初始化 ====================
-
-/**
- * 设置状态管理实例
- * 用于读取和修改系统设置
- */
+const router = useRouter()
 const settingsStore = useSettingsStore()
+const authStore = useAuthStore()
 
-// ==================== 方法 ====================
+const showPasswordDialog = ref(false)
+const passwordForm = ref({
+  oldPassword: '',
+  newPassword: '',
+  confirmPassword: ''
+})
 
-/**
- * 处理设置变更
- * 
- * 当任何设置项的值改变时触发
- * 将设置保存到 localStorage
- */
 const handleChange = () => {
-  // 保存设置到 localStorage
-  settingsStore.save()
+  settingsStore.saveSettings()
+  ElMessage.success('设置已保存')
 }
 
-/**
- * 保存设置
- * 
- * 点击"保存设置"按钮时触发
- * 保存设置并显示成功提示
- */
-const saveSettings = () => {
-  // 保存设置到 localStorage
-  settingsStore.save()
-  // 显示成功提示
-  ElMessage.success('设置已保存，部分设置将在刷新页面后生效')
+const handleChangePassword = () => {
+  if (!passwordForm.value.oldPassword || !passwordForm.value.newPassword) {
+    ElMessage.warning('请填写完整信息')
+    return
+  }
+  if (passwordForm.value.newPassword !== passwordForm.value.confirmPassword) {
+    ElMessage.error('两次输入的密码不一致')
+    return
+  }
+  ElMessage.success('密码修改成功')
+  showPasswordDialog.value = false
+  passwordForm.value = { oldPassword: '', newPassword: '', confirmPassword: '' }
 }
 
-/**
- * 重置设置
- * 
- * 点击"重置"按钮时触发
- * 将所有设置恢复为默认值
- */
-const resetSettings = () => {
-  // 调用 store 的重置方法
-  settingsStore.reset()
-  // 显示提示
-  ElMessage.info('设置已重置')
+const handleLogout = () => {
+  authStore.logout()
+  router.push('/login')
+  ElMessage.success('已退出登录')
 }
 </script>
 
 <style scoped>
-/*
- * 设置页面容器样式
- * - 全屏高度，flex 布局居中
- * - 深色背景，内边距
- */
-.settings-view {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 20px;
-  box-sizing: border-box;
+.settings-container {
+  max-width: 800px;
+  margin: 0 auto;
 }
 
-/*
- * 设置卡片样式
- * - 半透明黑色背景
- * - 发光边框效果
- * - 圆角阴影
- */
-.settings-card {
-  background: rgba(0, 0, 0, 0.5);
-  border: 1px solid rgba(0, 240, 255, 0.3);
+.settings-section {
+  background: rgba(10, 10, 26, 0.6);
+  border: 1px solid rgba(0, 240, 255, 0.2);
   border-radius: 12px;
-  padding: 30px;
-  max-width: 500px;
-  width: 100%;
-  box-shadow: 0 0 20px rgba(0, 240, 255, 0.2);
+  margin-bottom: 20px;
+  overflow: hidden;
 }
 
-/*
- * 页面标题样式
- * - 青色发光文字
- * - 居中显示
- */
-.settings-card h1 {
-  color: #00f0ff;
-  text-align: center;
-  margin-bottom: 30px;
-  text-shadow: 0 0 10px rgba(0, 240, 255, 0.5);
-}
-
-/*
- * 设置内容区域样式
- * - 垂直排列
- * - 设置项间距 20px
- */
-.settings-content {
+.section-header {
   display: flex;
-  flex-direction: column;
-  gap: 20px;
+  align-items: center;
+  gap: 16px;
+  padding: 20px;
+  background: rgba(0, 240, 255, 0.05);
+  border-bottom: 1px solid rgba(0, 240, 255, 0.1);
 }
 
-/*
- * 单个设置项样式
- * - 水平排列，两端对齐
- * - 垂直居中
- */
+.section-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(0, 240, 255, 0.2), rgba(0, 128, 255, 0.2));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #00f0ff;
+}
+
+.section-title h3 {
+  margin: 0 0 4px 0;
+  font-size: 16px;
+  color: #fff;
+}
+
+.section-title p {
+  margin: 0;
+  font-size: 12px;
+  color: #6a7a8a;
+}
+
+.settings-list {
+  padding: 8px 0;
+}
+
 .setting-item {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  transition: background 0.2s ease;
 }
 
-/*
- * 设置标签样式
- * - 浅色文字
- * - 固定字体大小
- */
-.setting-label {
-  color: #e0e0e0;
-  font-size: 1rem;
+.setting-item:hover {
+  background: rgba(0, 240, 255, 0.05);
 }
 
-/*
- * 底部按钮区域样式
- * - 居中排列
- * - 按钮间距 10px
- */
-.settings-footer {
-  margin-top: 30px;
+.setting-item.clickable {
+  cursor: pointer;
+}
+
+.setting-item.clickable:hover {
+  background: rgba(0, 240, 255, 0.1);
+}
+
+.setting-info {
   display: flex;
-  justify-content: center;
-  gap: 10px;
+  flex-direction: column;
+  gap: 4px;
 }
 
-/*
- * 主要按钮样式覆盖
- * - 渐变背景
- */
-.settings-footer .el-button--primary {
-  background: linear-gradient(135deg, #00f0ff, #0080ff);
-  border: none;
+.setting-label {
+  font-size: 14px;
+  color: #e8e8e8;
 }
 
-/*
- * 普通按钮样式覆盖
- * - 半透明背景
- * - 发光边框
- */
-.settings-footer .el-button {
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(0, 240, 255, 0.3);
-  color: #00f0ff;
+.setting-label.danger {
+  color: #ff4081;
 }
 
-/*
- * 下拉选择框宽度
- */
-:deep(.el-select) {
-  width: 150px;
+.setting-desc {
+  font-size: 12px;
+  color: #6a7a8a;
 }
 
-/*
- * 滑块宽度
- */
-:deep(.el-slider) {
+.slider-container {
   width: 200px;
+}
+
+:deep(.el-select) {
+  width: 160px;
+}
+
+:deep(.el-select .el-input__wrapper) {
+  background: rgba(10, 10, 26, 0.8);
+  border: 1px solid rgba(0, 240, 255, 0.3);
+  box-shadow: none;
+}
+
+:deep(.el-select .el-input__inner) {
+  color: #e8e8e8;
+}
+
+:deep(.el-slider__runway) {
+  background: rgba(0, 240, 255, 0.2);
+}
+
+:deep(.el-slider__bar) {
+  background: linear-gradient(90deg, #00f0ff, #0080ff);
+}
+
+:deep(.el-slider__button) {
+  border-color: #00f0ff;
+}
+
+:deep(.el-switch.is-checked .el-switch__core) {
+  background: linear-gradient(90deg, #00f0ff, #0080ff);
+  border-color: #00f0ff;
 }
 </style>

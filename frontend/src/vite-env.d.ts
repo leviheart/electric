@@ -5,3 +5,10 @@ declare module '*.vue' {
   const component: DefineComponent<{}, {}, any>
   export default component
 }
+
+declare module 'sockjs-client' {
+  const SockJS: {
+    new (url: string): WebSocket
+  }
+  export default SockJS
+}

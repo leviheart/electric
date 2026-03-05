@@ -9,11 +9,16 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "vue": "^3.4.0",
-    "vue-router": "^4.2.5",
-    "pinia": "^2.1.7",
+    "@joint/core": "^4.2.4",
+    "@stomp/stompjs": "^7.3.0",
+    "axios": "^1.13.6",
+    "echarts": "^6.0.0",
     "element-plus": "^2.4.4",
-    "mapbox-gl": "^3.3.0"
+    "mapbox-gl": "^3.3.0",
+    "pinia": "^2.1.7",
+    "sockjs-client": "^1.6.1",
+    "vue": "^3.4.0",
+    "vue-router": "^4.2.5"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^4.4.0",

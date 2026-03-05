@@ -18,13 +18,19 @@ interface Settings {
   defaultZoom: number
   autoLoad: boolean
   showGrid: boolean
+  enableAnimations: boolean
+  enableNotifications: boolean
+  soundEnabled: boolean
 }
 
 const DEFAULT_SETTINGS: Settings = {
   mapStyle: 'dark',
   defaultZoom: 12,
   autoLoad: true,
-  showGrid: true
+  showGrid: true,
+  enableAnimations: true,
+  enableNotifications: true,
+  soundEnabled: false
 }
 
 const SETTINGS_KEY = 'electric_grid_settings'
@@ -62,15 +68,19 @@ export const useSettingsStore = defineStore('settings', {
         mapStyle: this.mapStyle,
         defaultZoom: this.defaultZoom,
         autoLoad: this.autoLoad,
-        showGrid: this.showGrid
+        showGrid: this.showGrid,
+        enableAnimations: this.enableAnimations,
+        enableNotifications: this.enableNotifications,
+        soundEnabled: this.soundEnabled
       }))
     },
 
     reset() {
-      this.mapStyle = DEFAULT_SETTINGS.mapStyle
-      this.defaultZoom = DEFAULT_SETTINGS.defaultZoom
-      this.autoLoad = DEFAULT_SETTINGS.autoLoad
-      this.showGrid = DEFAULT_SETTINGS.showGrid
+      Object.assign(this, DEFAULT_SETTINGS)
+      this.save()
+    },
+
+    saveSettings() {
       this.save()
     },
 

@@ -15,9 +15,8 @@
         :icon="Search" 
         @click="handleSearch"
         :loading="loading"
-      >
-        搜索
-      </el-button>
+        circle
+      />
     </div>
     
     <div class="filter-options" v-if="showFilters">
@@ -25,6 +24,7 @@
         v-model="selectedVoltageLevel"
         placeholder="电压等级"
         clearable
+        size="small"
         @change="handleFilterChange"
       >
         <el-option label="220kV" value="220kV" />
@@ -36,6 +36,7 @@
         v-model="selectedStatus"
         placeholder="运行状态"
         clearable
+        size="small"
         @change="handleFilterChange"
       >
         <el-option label="运行中" value="运行中" />
@@ -148,98 +149,33 @@
 </template>
 
 <script setup lang="ts">
-/**
- * SearchBox.vue - 全局搜索组件
- * 
- * 功能说明：
- * 提供全局搜索功能，支持：
- * 1. 关键字搜索：模糊匹配变电站、线路、台区名称
- * 2. 条件筛选：按电压等级、运行状态过滤
- * 3. 结果展示：分类显示搜索结果
- * 4. 快速定位：点击结果跳转到地图对应位置
- * 
- * 组件结构：
- * ┌─────────────────────────────────────────────────────────────────┐
- * │ [搜索输入框] [搜索按钮]                                          │
- * │ [电压等级筛选] [运行状态筛选]                                     │
- * ├─────────────────────────────────────────────────────────────────┤
- * │ 找到 X 个结果                                           [关闭]  │
- * │ [变电站] [线路] [台区]                                           │
- * │ ┌─────────────────────────────────────────────────────────────┐ │
- * │ │ ⚡ 变电站名称                                                 │ │
- * │ │    220kV  运行中                                             │ │
- * │ └─────────────────────────────────────────────────────────────┘ │
- * └─────────────────────────────────────────────────────────────────┘
- * 
- * 事件：
- * - select: 用户选择搜索结果时触发，参数为 { type, data }
- * - clear: 用户清空搜索时触发
- * 
- * 文件关联：
- * - api/search.ts: 搜索 API 服务
- * - types/index.ts: 类型定义
- * - views/HomeView.vue: 父组件
- */
-
-import { ref, computed, onUnmounted } from 'vue'
+import { ref, onUnmounted } from 'vue'
 import { Search, Close } from '@element-plus/icons-vue'
 import { globalSearch, type SearchResult as SearchResultType, type SearchParams } from '../api/search'
 import type { Substation, TransmissionLine, Area } from '../types'
 
-// ==================== Props 定义 ====================
-
 const props = withDefaults(defineProps<{
-  /** 是否显示筛选选项 */
   showFilters?: boolean
-  /** 搜索防抖延迟（毫秒） */
   debounceDelay?: number
 }>(), {
   showFilters: true,
   debounceDelay: 300
 })
 
-// ==================== Emits 定义 ====================
-
 const emit = defineEmits<{
-  /** 选择搜索结果事件 */
   select: [result: { type: string; data: Substation | TransmissionLine | Area }]
-  /** 清空搜索事件 */
   clear: []
 }>()
 
-// ==================== 响应式数据 ====================
-
-/** 搜索关键字 */
 const searchKeyword = ref('')
-
-/** 选中的电压等级 */
 const selectedVoltageLevel = ref('')
-
-/** 选中的运行状态 */
 const selectedStatus = ref('')
-
-/** 加载状态 */
 const loading = ref(false)
-
-/** 是否显示搜索结果 */
 const showResults = ref(false)
-
-/** 搜索结果 */
 const searchResult = ref<SearchResultType | null>(null)
-
-/** 当前激活的标签页 */
 const activeTab = ref('substations')
-
-/** 防抖定时器 */
 let debounceTimer: ReturnType<typeof setTimeout> | null = null
 
-// ==================== 方法 ====================
-
-/**
- * 处理搜索
- * 
- * 使用防抖机制，避免频繁请求
- */
 const handleSearch = () => {
   if (debounceTimer) {
     clearTimeout(debounceTimer)
@@ -250,9 +186,6 @@ const handleSearch = () => {
   }, props.debounceDelay)
 }
 
-/**
- * 执行搜索请求
- */
 const performSearch = async () => {
   if (!searchKeyword.value.trim() && !selectedVoltageLevel.value && !selectedStatus.value) {
     showResults.value = false
@@ -287,18 +220,12 @@ const performSearch = async () => {
   }
 }
 
-/**
- * 处理筛选条件变化
- */
 const handleFilterChange = () => {
   if (searchKeyword.value.trim() || selectedVoltageLevel.value || selectedStatus.value) {
     performSearch()
   }
 }
 
-/**
- * 处理清空搜索
- */
 const handleClear = () => {
   searchKeyword.value = ''
   selectedVoltageLevel.value = ''
@@ -315,30 +242,15 @@ onUnmounted(() => {
   }
 })
 
-/**
- * 关闭搜索结果
- */
 const closeResults = () => {
   showResults.value = false
 }
 
-/**
- * 选择搜索结果
- * 
- * @param type 设备类型
- * @param data 设备数据
- */
 const selectResult = (type: string, data: Substation | TransmissionLine | Area) => {
   emit('select', { type, data })
   showResults.value = false
 }
 
-/**
- * 获取状态样式类名
- * 
- * @param status 状态文本
- * @returns 样式类名
- */
 const getStatusClass = (status: string): string => {
   switch (status) {
     case '运行中':
@@ -356,91 +268,70 @@ const getStatusClass = (status: string): string => {
 </script>
 
 <style scoped>
-/*
- * 搜索框容器样式
- * - 相对定位，确保搜索结果正确显示
- */
 .search-box {
   position: relative;
   width: 100%;
-  max-width: 600px;
 }
 
-/*
- * 搜索输入区域样式
- * - 水平排列输入框和按钮
- */
 .search-input-wrapper {
   display: flex;
-  gap: 10px;
-}
-
-/*
- * 输入框样式覆盖
- * - 深色主题
- */
-.search-input-wrapper :deep(.el-input__wrapper) {
+  gap: 6px;
+  padding: 6px 10px;
   background: rgba(0, 0, 0, 0.3);
   border: 1px solid rgba(0, 240, 255, 0.3);
+  border-radius: 20px;
+}
+
+.search-input-wrapper :deep(.el-input) {
+  flex: 1;
+}
+
+.search-input-wrapper :deep(.el-input__wrapper) {
+  background: transparent;
+  border: none;
   box-shadow: none;
-}
-
-.search-input-wrapper :deep(.el-input__wrapper:hover) {
-  border-color: rgba(0, 240, 255, 0.5);
-}
-
-.search-input-wrapper :deep(.el-input__wrapper.is-focus) {
-  border-color: #00f0ff;
-  box-shadow: 0 0 10px rgba(0, 240, 255, 0.3);
+  padding: 0 8px;
 }
 
 .search-input-wrapper :deep(.el-input__inner) {
   color: #ffffff;
+  font-size: 13px;
 }
 
 .search-input-wrapper :deep(.el-input__inner::placeholder) {
   color: rgba(255, 255, 255, 0.5);
 }
 
-/*
- * 筛选选项区域样式
- */
+.search-input-wrapper :deep(.el-button) {
+  width: 30px;
+  height: 30px;
+  background: linear-gradient(135deg, #00f0ff, #0080ff);
+  border: none;
+  color: #0a0a1a;
+}
+
+.search-input-wrapper :deep(.el-button:hover) {
+  box-shadow: 0 0 10px rgba(0, 240, 255, 0.5);
+}
+
 .filter-options {
-  display: flex;
-  gap: 10px;
-  margin-top: 10px;
+  display: none;
 }
 
-.filter-options :deep(.el-select) {
-  width: 120px;
-}
-
-.filter-options :deep(.el-select .el-input__wrapper) {
-  background: rgba(0, 0, 0, 0.3);
-  border: 1px solid rgba(0, 240, 255, 0.3);
-}
-
-/*
- * 搜索结果区域样式
- * - 绝对定位，浮于其他内容之上
- */
 .search-results {
   position: absolute;
-  top: calc(100% + 10px);
+  top: calc(100% + 6px);
   left: 0;
   right: 0;
   background: rgba(10, 10, 26, 0.95);
   border: 1px solid rgba(0, 240, 255, 0.3);
-  border-radius: 12px;
+  border-radius: 10px;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
   z-index: 1000;
-  max-height: 400px;
+  max-height: 350px;
   overflow: hidden;
 }
 
-/*
- * 结果头部样式
- */
 .results-header {
   display: flex;
   justify-content: space-between;
@@ -454,9 +345,6 @@ const getStatusClass = (status: string): string => {
   font-size: 14px;
 }
 
-/*
- * 标签页样式
- */
 .results-tabs :deep(.el-tabs__header) {
   margin: 0;
   padding: 0 16px;
@@ -475,18 +363,12 @@ const getStatusClass = (status: string): string => {
   background: #00f0ff;
 }
 
-/*
- * 结果列表样式
- */
 .result-list {
   max-height: 280px;
   overflow-y: auto;
   padding: 8px;
 }
 
-/*
- * 单个结果项样式
- */
 .result-item {
   display: flex;
   align-items: center;
@@ -501,17 +383,14 @@ const getStatusClass = (status: string): string => {
   background: rgba(0, 240, 255, 0.1);
 }
 
-/*
- * 结果图标样式
- */
 .result-icon {
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: 8px;
-  font-size: 18px;
+  font-size: 16px;
 }
 
 .substation-icon {
@@ -529,9 +408,6 @@ const getStatusClass = (status: string): string => {
   border: 1px solid rgba(0, 255, 128, 0.5);
 }
 
-/*
- * 结果信息样式
- */
 .result-info {
   flex: 1;
   min-width: 0;
@@ -554,9 +430,6 @@ const getStatusClass = (status: string): string => {
   color: rgba(255, 255, 255, 0.6);
 }
 
-/*
- * 标签样式
- */
 .voltage-tag {
   padding: 2px 6px;
   background: rgba(0, 240, 255, 0.2);
@@ -584,18 +457,12 @@ const getStatusClass = (status: string): string => {
   color: #ffff00;
 }
 
-/*
- * 无结果提示样式
- */
 .no-results {
   text-align: center;
   padding: 20px;
   color: rgba(255, 255, 255, 0.5);
 }
 
-/*
- * 滚动条样式
- */
 .result-list::-webkit-scrollbar {
   width: 6px;
 }

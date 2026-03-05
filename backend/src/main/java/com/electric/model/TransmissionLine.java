@@ -1,5 +1,6 @@
 package com.electric.model;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -105,7 +106,117 @@ public class TransmissionLine {
      * - 用于在地图上绘制线路
      * - 可以包含多个中间点，实现曲线效果
      */
+    @Column(columnDefinition = "TEXT")
     private String geometry;
+    
+    /**
+     * 线路类型
+     * - overhead: 架空线
+     * - cable: 电缆
+     */
+    private String lineType;
+    
+    /**
+     * 负载率
+     * - 0-100+ 的数值
+     * - 用于动态显示线路负载状态
+     */
+    private Double loadRate;
+
+    /**
+     * 设备编号
+     */
+    private String deviceCode;
+
+    /**
+     * 投运日期
+     */
+    private String commissionDate;
+
+    /**
+     * 设备厂家
+     */
+    private String manufacturer;
+
+    /**
+     * 设备型号
+     */
+    private String model;
+
+    /**
+     * 导线型号
+     */
+    private String conductorModel;
+
+    /**
+     * 导线截面
+     * - 单位：mm²
+     */
+    private Double conductorSection;
+
+    /**
+     * 检修周期
+     * - 单位：月
+     */
+    private Integer maintenanceCycle;
+
+    /**
+     * 上次检修日期
+     */
+    private String lastMaintenanceDate;
+
+    /**
+     * 下次检修日期
+     */
+    private String nextMaintenanceDate;
+
+    /**
+     * 设计寿命
+     * - 单位：年
+     */
+    private Integer designLife;
+
+    /**
+     * 负责人
+     */
+    private String manager;
+
+    /**
+     * 联系电话
+     */
+    private String contactPhone;
+
+    /**
+     * 设计电流
+     * - 单位：A
+     */
+    private Double designCurrent;
+
+    /**
+     * 线路回路数
+     */
+    private Integer circuitCount;
+
+    /**
+     * 杆塔数量
+     */
+    private Integer towerCount;
+
+    /**
+     * 建设性质
+     */
+    private String constructionType;
+
+    /**
+     * 资产性质
+     */
+    private String assetType;
+
+    /**
+     * 备注
+     */
+    @Column(columnDefinition = "TEXT")
+    private String remark;
 
     // ==================== 构造函数 ====================
 
@@ -202,5 +313,165 @@ public class TransmissionLine {
 
     public void setGeometry(String geometry) {
         this.geometry = geometry;
+    }
+    
+    public String getLineType() {
+        return lineType;
+    }
+    
+    public void setLineType(String lineType) {
+        this.lineType = lineType;
+    }
+    
+    public Double getLoadRate() {
+        return loadRate;
+    }
+    
+    public void setLoadRate(Double loadRate) {
+        this.loadRate = loadRate;
+    }
+
+    public String getDeviceCode() {
+        return deviceCode;
+    }
+
+    public void setDeviceCode(String deviceCode) {
+        this.deviceCode = deviceCode;
+    }
+
+    public String getCommissionDate() {
+        return commissionDate;
+    }
+
+    public void setCommissionDate(String commissionDate) {
+        this.commissionDate = commissionDate;
+    }
+
+    public String getManufacturer() {
+        return manufacturer;
+    }
+
+    public void setManufacturer(String manufacturer) {
+        this.manufacturer = manufacturer;
+    }
+
+    public String getModel() {
+        return model;
+    }
+
+    public void setModel(String model) {
+        this.model = model;
+    }
+
+    public String getConductorModel() {
+        return conductorModel;
+    }
+
+    public void setConductorModel(String conductorModel) {
+        this.conductorModel = conductorModel;
+    }
+
+    public Double getConductorSection() {
+        return conductorSection;
+    }
+
+    public void setConductorSection(Double conductorSection) {
+        this.conductorSection = conductorSection;
+    }
+
+    public Integer getMaintenanceCycle() {
+        return maintenanceCycle;
+    }
+
+    public void setMaintenanceCycle(Integer maintenanceCycle) {
+        this.maintenanceCycle = maintenanceCycle;
+    }
+
+    public String getLastMaintenanceDate() {
+        return lastMaintenanceDate;
+    }
+
+    public void setLastMaintenanceDate(String lastMaintenanceDate) {
+        this.lastMaintenanceDate = lastMaintenanceDate;
+    }
+
+    public String getNextMaintenanceDate() {
+        return nextMaintenanceDate;
+    }
+
+    public void setNextMaintenanceDate(String nextMaintenanceDate) {
+        this.nextMaintenanceDate = nextMaintenanceDate;
+    }
+
+    public Integer getDesignLife() {
+        return designLife;
+    }
+
+    public void setDesignLife(Integer designLife) {
+        this.designLife = designLife;
+    }
+
+    public String getManager() {
+        return manager;
+    }
+
+    public void setManager(String manager) {
+        this.manager = manager;
+    }
+
+    public String getContactPhone() {
+        return contactPhone;
+    }
+
+    public void setContactPhone(String contactPhone) {
+        this.contactPhone = contactPhone;
+    }
+
+    public Double getDesignCurrent() {
+        return designCurrent;
+    }
+
+    public void setDesignCurrent(Double designCurrent) {
+        this.designCurrent = designCurrent;
+    }
+
+    public Integer getCircuitCount() {
+        return circuitCount;
+    }
+
+    public void setCircuitCount(Integer circuitCount) {
+        this.circuitCount = circuitCount;
+    }
+
+    public Integer getTowerCount() {
+        return towerCount;
+    }
+
+    public void setTowerCount(Integer towerCount) {
+        this.towerCount = towerCount;
+    }
+
+    public String getConstructionType() {
+        return constructionType;
+    }
+
+    public void setConstructionType(String constructionType) {
+        this.constructionType = constructionType;
+    }
+
+    public String getAssetType() {
+        return assetType;
+    }
+
+    public void setAssetType(String assetType) {
+        this.assetType = assetType;
+    }
+
+    public String getRemark() {
+        return remark;
+    }
+
+    public void setRemark(String remark) {
+        this.remark = remark;
     }
 }

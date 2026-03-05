@@ -325,6 +325,42 @@ public class Alert {
         alert.setLongitude(lng);
         return alert;
     }
+    
+    /**
+     * 创建温度过高告警
+     */
+    public static Alert temperatureHigh(String deviceType, Long deviceId, String deviceName,
+                                         double temperature, Double lat, Double lng) {
+        Alert alert = new Alert();
+        alert.setType(AlertType.TEMPERATURE_HIGH);
+        alert.setLevel(temperature > 80 ? AlertLevel.CRITICAL : AlertLevel.HIGH);
+        alert.setDeviceType(deviceType);
+        alert.setDeviceId(deviceId);
+        alert.setDeviceName(deviceName);
+        alert.setTitle("温度过高告警");
+        alert.setMessage(String.format("设备 %s 温度过高：%.1f°C，请检查散热系统", deviceName, temperature));
+        alert.setLatitude(lat);
+        alert.setLongitude(lng);
+        return alert;
+    }
+    
+    /**
+     * 创建检修提醒告警
+     */
+    public static Alert maintenance(String deviceType, Long deviceId, String deviceName,
+                                    String maintenanceDetail, Double lat, Double lng) {
+        Alert alert = new Alert();
+        alert.setType(AlertType.MAINTENANCE);
+        alert.setLevel(AlertLevel.MEDIUM);
+        alert.setDeviceType(deviceType);
+        alert.setDeviceId(deviceId);
+        alert.setDeviceName(deviceName);
+        alert.setTitle("检修提醒");
+        alert.setMessage(String.format("设备 %s 需要检修：%s", deviceName, maintenanceDetail));
+        alert.setLatitude(lat);
+        alert.setLongitude(lng);
+        return alert;
+    }
 
     // ==================== Getter 和 Setter 方法 ====================
 

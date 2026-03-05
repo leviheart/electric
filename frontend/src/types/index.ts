@@ -31,6 +31,11 @@ export interface Substation {
   longitude: number
   voltageLevel: string
   status: string
+  loadRate?: number
+  capacity?: number
+  currentPower?: number
+  connectedLines?: number
+  region?: string
 }
 
 /**
@@ -46,12 +51,16 @@ export interface TransmissionLine {
   voltageLevel: string
   status: string
   geometry: string
+  lineType?: 'overhead' | 'cable'
+  loadRate?: number
 }
 
 /**
  * 台区数据类型
  * 与后端 Area 实体类对应
  */
+export type AreaStatus = 'normal' | 'warning' | 'overload' | 'fault' | 'maintenance'
+
 export interface Area {
   id: number
   name: string
@@ -59,6 +68,10 @@ export interface Area {
   customerCount: number
   status: string
   geometry: string
+  loadRate?: number
+  transformerCapacity?: number
+  transformerLocation?: { lat: number; lng: number }
+  importantCustomerCount?: number
 }
 
 /**
@@ -166,4 +179,82 @@ export interface LoginResponse {
   username: string
   role: string
   expiresIn: number
+}
+
+/**
+ * ═══════════════════════════════════════════════════════════════════════════
+ * 角色权限相关类型定义
+ * ═══════════════════════════════════════════════════════════════════════════
+ */
+
+/**
+ * 权限类型
+ * 与后端 Permission 实体类对应
+ */
+export interface Permission {
+  id: number
+  name: string
+  description: string
+  resource: string
+  action: string
+}
+
+/**
+ * 角色类型
+ * 与后端 Role 实体类对应
+ */
+export interface Role {
+  id: number
+  name: string
+  description: string
+  permissions?: Permission[]
+}
+
+/**
+ * 完整用户类型
+ * 与后端 User 实体类对应
+ */
+export interface UserFull {
+  id: number
+  username: string
+  enabled: boolean
+  roles: Role[]
+}
+
+/**
+ * ═══════════════════════════════════════════════════════════════════════════
+ * 运行数据相关类型定义
+ * ═══════════════════════════════════════════════════════════════════════════
+ */
+
+/**
+ * 运行数据类型
+ * 与后端 OperationData 实体类对应
+ */
+export interface OperationData {
+  id: number
+  entityType: string
+  entityId: number
+  entityName: string
+  recordTime: string
+  voltage: number
+  current: number
+  power: number
+  powerFactor: number
+  frequency: number
+  temperature: number
+  status: string
+}
+
+/**
+ * 统计数据类型
+ */
+export interface Stats {
+  totalSubstations: number
+  totalLines: number
+  totalAreas: number
+  activeAlerts: number
+  averageLoadRate: number
+  totalCapacity: number
+  totalCustomers: number
 }

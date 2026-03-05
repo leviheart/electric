@@ -40,120 +40,102 @@
 import { defineStore } from 'pinia'
 import type { MapStats, LayerVisibility } from '../types'
 
+interface ExtendedStats extends MapStats {
+  alertCount?: number
+  avgLoadRate?: number
+  totalCapacity?: number
+  totalCustomers?: number
+}
+
 interface MapState {
   stats: MapStats
+  extendedStats: ExtendedStats
   layerVisibility: LayerVisibility
   isLoading: boolean
   error: string | null
 }
 
 export const useMapStore = defineStore('map', {
-  /**
-   * 状态定义
-   * 使用箭头函数返回初始状态对象
-   */
   state: (): MapState => ({
-    // 统计数据
     stats: {
       substations: 0,
       lines: 0,
       areas: 0
     },
-    // 图层可见性
+    extendedStats: {
+      substations: 0,
+      lines: 0,
+      areas: 0,
+      alertCount: 0,
+      avgLoadRate: 0,
+      totalCapacity: 0,
+      totalCustomers: 0
+    },
     layerVisibility: {
       substations: true,
       lines: true,
       areas: true
     },
-    // 加载状态
     isLoading: false,
-    // 错误信息
     error: null
   }),
 
-  /**
-   * 计算属性
-   * 用于派生状态，类似 Vue 的 computed
-   */
   getters: {
-    /**
-     * 计算总数据条目数
-     * @param state 状态对象
-     * @return 总条目数
-     */
     totalItems: (state) => 
       state.stats.substations + state.stats.lines + state.stats.areas,
     
-    /**
-     * 判断是否有数据
-     * @param state 状态对象
-     * @return 是否有数据
-     */
     hasData: (state) => 
       state.stats.substations > 0 || state.stats.lines > 0 || state.stats.areas > 0
   },
 
-  /**
-   * 操作方法
-   * 用于修改状态，类似 Vue 的 methods
-   */
   actions: {
-    /**
-     * 更新统计数据
-     * @param newStats 新的统计数据（部分更新）
-     */
     updateStats(newStats: Partial<MapStats>) {
       this.stats = { ...this.stats, ...newStats }
+      this.extendedStats = { ...this.extendedStats, ...newStats }
     },
 
-    /**
-     * 重置统计数据
-     * 将所有统计值归零
-     */
+    updateExtendedStats(newStats: Partial<ExtendedStats>) {
+      this.extendedStats = { ...this.extendedStats, ...newStats }
+      this.stats = {
+        substations: this.extendedStats.substations,
+        lines: this.extendedStats.lines,
+        areas: this.extendedStats.areas
+      }
+    },
+
     resetStats() {
       this.stats = {
         substations: 0,
         lines: 0,
         areas: 0
       }
+      this.extendedStats = {
+        substations: 0,
+        lines: 0,
+        areas: 0,
+        alertCount: 0,
+        avgLoadRate: 0,
+        totalCapacity: 0,
+        totalCustomers: 0
+      }
     },
 
-    /**
-     * 切换图层可见性
-     * @param layer 图层类型
-     */
     toggleLayerVisibility(layer: keyof LayerVisibility) {
       this.layerVisibility[layer] = !this.layerVisibility[layer]
     },
 
-    /**
-     * 设置图层可见性
-     * @param layer 图层类型
-     * @param visible 是否可见
-     */
     setLayerVisibility(layer: keyof LayerVisibility, visible: boolean) {
       this.layerVisibility[layer] = visible
     },
 
-    /**
-     * 设置加载状态
-     * @param loading 是否加载中
-     */
     setLoading(loading: boolean) {
       this.isLoading = loading
     },
 
-    /**
-     * 设置错误信息
-     * @param error 错误信息
-     */
     setError(error: string | null) {
       this.error = error
     },
 
-    /**
-     * 清除错误信息
-     */
     clearError() {
       this.error = null
     }

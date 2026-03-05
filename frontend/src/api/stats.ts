@@ -11,6 +11,9 @@ export interface DeviceStats {
   totalAreas: number
   totalCustomers: number
   totalLength: number
+  avgLoadRate: number
+  totalCapacity: number
+  totalTransformerCapacity: number
 }
 
 export interface AlertStatsData {

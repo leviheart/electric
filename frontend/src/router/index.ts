@@ -58,6 +58,60 @@ const routes: RouteRecordRaw[] = [
     }
   },
   {
+    path: '/operation',
+    name: 'Operation',
+    component: () => import('../views/OperationView.vue'),
+    meta: {
+      title: '运维管理',
+      requiresAuth: true
+    }
+  },
+  {
+    path: '/analysis',
+    name: 'Analysis',
+    component: () => import('../views/AnalysisView.vue'),
+    meta: {
+      title: '分析计算',
+      requiresAuth: true
+    }
+  },
+  {
+    path: '/dual-power',
+    name: 'DualPower',
+    component: () => import('../views/DualPowerView.vue'),
+    meta: {
+      title: '双电源管理',
+      requiresAuth: true
+    }
+  },
+  {
+    path: '/power-tracing',
+    name: 'PowerTracing',
+    component: () => import('../views/PowerTracingView.vue'),
+    meta: {
+      title: '电源追溯',
+      requiresAuth: true
+    }
+  },
+  {
+    path: '/natural-disaster',
+    name: 'NaturalDisaster',
+    component: () => import('../views/NaturalDisasterView.vue'),
+    meta: {
+      title: '自然灾害预警',
+      requiresAuth: true
+    }
+  },
+  {
+    path: '/resource',
+    name: 'Resource',
+    component: () => import('../views/ResourceView.vue'),
+    meta: {
+      title: '资源管理',
+      requiresAuth: true
+    }
+  },
+  {
     path: '/about',
     name: 'About',
     component: () => import('../views/AboutView.vue'),
@@ -72,6 +126,24 @@ const routes: RouteRecordRaw[] = [
     component: () => import('../views/SettingsView.vue'),
     meta: {
       title: '系统设置',
+      requiresAuth: true
+    }
+  },
+  {
+    path: '/users',
+    name: 'Users',
+    component: () => import('../views/UserManagementView.vue'),
+    meta: {
+      title: '用户管理',
+      requiresAuth: true
+    }
+  },
+  {
+    path: '/station-diagram/:id',
+    name: 'StationDiagram',
+    component: () => import('../views/StationDiagramView.vue'),
+    meta: {
+      title: '站内图',
       requiresAuth: true
     }
   },

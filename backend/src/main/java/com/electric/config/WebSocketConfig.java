@@ -89,13 +89,11 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
      */
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
-        // 注册 WebSocket 端点
-        // 客户端通过 ws://localhost:8080/ws 连接
         registry.addEndpoint("/ws")
-                // 允许跨域（开发环境使用 *，生产环境应限制域名）
                 .setAllowedOriginPatterns("*")
-                // 启用 SockJS 降级方案
-                // 如果浏览器不支持 WebSocket，会自动降级到其他传输方式
                 .withSockJS();
+        
+        registry.addEndpoint("/ws-native")
+                .setAllowedOriginPatterns("*");
     }
 }

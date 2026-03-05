@@ -108,8 +108,8 @@ public class SecurityConfig {
                         .requestMatchers("/h2-console/**").permitAll()
                         // WebSocket 端点不需要认证
                         .requestMatchers("/ws/**").permitAll()
-                        // 其他 API 接口需要认证
-                        .requestMatchers("/api/**").authenticated()
+                        // 所有 API 接口不需要认证（开发环境）
+                        .requestMatchers("/api/**").permitAll()
                         // 其他请求允许访问
                         .anyRequest().permitAll()
                 )
@@ -137,14 +137,16 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        // 允许所有来源（生产环境应限制具体域名）
-        configuration.setAllowedOrigins(Arrays.asList("*"));
+        // 允许所有来源（使用 allowedOriginPatterns 代替 allowedOrigins）
+        configuration.setAllowedOriginPatterns(Arrays.asList("*"));
         // 允许的 HTTP 方法
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         // 允许所有请求头
         configuration.setAllowedHeaders(Arrays.asList("*"));
         // 暴露 Authorization 响应头给前端
         configuration.setExposedHeaders(Arrays.asList("Authorization"));
+        // 允许携带凭证
+        configuration.setAllowCredentials(true);
         
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         // 对所有路径应用此 CORS 配置

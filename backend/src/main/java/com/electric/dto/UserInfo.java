@@ -21,16 +21,32 @@ package com.electric.dto;
  */
 public class UserInfo {
     
+    private Long id;
     private String username;
     private String role;
     private boolean enabled;
     
     public UserInfo() {}
     
+    public UserInfo(Long id, String username, String role, boolean enabled) {
+        this.id = id;
+        this.username = username;
+        this.role = role;
+        this.enabled = enabled;
+    }
+    
     public UserInfo(String username, String role, boolean enabled) {
         this.username = username;
         this.role = role;
         this.enabled = enabled;
+    }
+    
+    public Long getId() {
+        return id;
+    }
+    
+    public void setId(Long id) {
+        this.id = id;
     }
     
     public String getUsername() {

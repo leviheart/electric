@@ -81,6 +81,9 @@ public class DashboardStats {
         private long totalAreas;
         private long totalCustomers;
         private long totalLength;
+        private double avgLoadRate;
+        private double totalCapacity;
+        private double totalTransformerCapacity;
         
         public long getTotalSubstations() { return totalSubstations; }
         public void setTotalSubstations(long totalSubstations) { this.totalSubstations = totalSubstations; }
@@ -92,6 +95,12 @@ public class DashboardStats {
         public void setTotalCustomers(long totalCustomers) { this.totalCustomers = totalCustomers; }
         public long getTotalLength() { return totalLength; }
         public void setTotalLength(long totalLength) { this.totalLength = totalLength; }
+        public double getAvgLoadRate() { return avgLoadRate; }
+        public void setAvgLoadRate(double avgLoadRate) { this.avgLoadRate = avgLoadRate; }
+        public double getTotalCapacity() { return totalCapacity; }
+        public void setTotalCapacity(double totalCapacity) { this.totalCapacity = totalCapacity; }
+        public double getTotalTransformerCapacity() { return totalTransformerCapacity; }
+        public void setTotalTransformerCapacity(double totalTransformerCapacity) { this.totalTransformerCapacity = totalTransformerCapacity; }
     }
 
     /**
